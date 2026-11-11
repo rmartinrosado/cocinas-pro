@@ -115,6 +115,12 @@ h3{margin:0;font-size:16px;font-weight:700}
 .it i{width:8px;height:8px;border-radius:2px;display:inline-block}
 .add{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
 .add button{flex:none;padding:6px 10px;border-radius:9px;border:1px dashed var(--ln2);color:var(--mu);font-size:12.5px;font-weight:600}
+.dirpad{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px);gap:5px;flex:none}
+.dirpad button{border-radius:12px;background:var(--acbg);border:1px solid var(--ac);color:var(--ac2);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.dirpad button b{font-size:22px}.dirpad button span{font-size:9px;margin-top:2px;color:var(--mu)}
+.dirpad button:disabled{background:var(--p2);border-color:var(--ln);color:var(--ln2);opacity:.45}
+.dirpad .dc{display:grid;place-items:center;border-radius:50%;margin:9px;background:var(--p2);border:1px dashed var(--ln2);font-family:var(--mono);font-weight:800;color:var(--ac)}
+.btn:disabled{opacity:.4}
 .doorpick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .doorpick button{background:var(--p2);border:1px solid var(--ln);border-radius:12px;padding:6px 8px 9px;color:#C9CDD3;display:flex;flex-direction:column;gap:2px;text-align:left}
 .doorpick button.on{border-color:var(--ac);background:var(--acbg);color:var(--ac2)}
@@ -749,7 +755,7 @@ function regular(n,W,L){const len=Math.round(2*(W+L)/n/10)*10,ang=180*(n-2)/n;re
 function roomThumb(P,o={}){const r=planSVG(P,Object.assign({mode:'geo',layers:{cotas:0,inst:0,mods:0,grid:0},noName:true,fsDiv:6,margin:2.3,noLR:true,lblOut:true},o));return wrapSVG(r,'width="100%" height="100%" preserveAspectRatio="xMidYMid meet"')}
 function vMedir(){const P=S.P,G=geo(P),r=P.room;if(S.focusWall==null||S.focusWall>=G.ws.length)S.focusWall=0;
  $('#main').innerHTML=`<div class="wrap">
- <div class="row sp" style="align-items:flex-start;gap:10px"><div><h1>Mediciones</h1><div class="sub">Todas las cotas en milímetros.</div></div><button class="btn pri sm" data-act="newPlan" style="flex:none;margin-top:6px">${ic('plus')} Plano nuevo</button></div>
+ <div class="row sp" style="align-items:flex-start;gap:10px"><div><h1>Mediciones</h1><div class="sub">Todas las cotas en milímetros.</div></div><div class="row" style="gap:6px;flex:none;margin-top:6px"><button class="btn sm" data-act="draw">✎ Dibujar</button><button class="btn pri sm" data-act="newPlan">${ic('plus')} Plano nuevo</button></div></div>
  <h2>Datos generales</h2>
  <div class="card"><div class="fgrid">
   ${F_txt('Nombre de la estancia','room.name',r.name)}
@@ -791,10 +797,48 @@ function wallCard(i){const P=S.P,w=P.room.walls[i],n=P.room.walls.length;const L
  <div class="add"><button data-act="addOp" data-t="puerta" data-w="${i}">+ Puerta</button><button data-act="addOp" data-t="ventana" data-w="${i}">+ Ventana</button><button data-act="addOb" data-w="${i}">+ Obstáculo</button><button data-act="addIn" data-w="${i}">+ Instalación</button></div></div>`}
 document.addEventListener('focusin',e=>{const b=e.target.dataset?.bind;const m=b&&b.match(/^room\.walls\.(\d+)\./);if(m&&S.view==='medir'&&S.focusWall!==+m[1]){S.focusWall=+m[1];S.live&&S.live()}});
 
+
+/* ---------------- Dibujar paredes pared a pared ---------------- */
+const DIRS={r:[1,0,'→','derecha'],d:[0,-1,'↓','abajo'],l:[-1,0,'←','izquierda'],u:[0,1,'↑','arriba']};
+const DANG={r:0,u:90,l:180,d:-90};
+function dwPts(segs){let x=0,y=0;const p=[[0,0]];segs.forEach(g=>{const d=DIRS[g.d];x+=d[0]*g.len;y+=d[1]*g.len;p.push([x,y])});return p}
+const dwAllowed=D=>{if(!D.segs.length)return['r','d','l','u'];const l=D.segs[D.segs.length-1].d;return l==='r'||l==='l'?['u','d']:['r','l']};
+function dwSVG(D,ghost){const P=dwPts(D.segs),last=P[P.length-1];const gh=ghost>0?dwAllowed(D).map(k=>{const d=DIRS[k];return[k,[last[0]+d[0]*ghost,last[1]+d[1]*ghost]]}):[];
+ const all=[...P,...gh.map(g=>g[1])];if(all.length<2)all.push([3000,-2400]);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;all.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])});
+ const sz=Math.max(x1-x0,y1-y0,2000),fs=sz/16,m=fs*2.6;let s='';const P2=p=>`${R(p[0])},${R(-p[1])}`;
+ if(D.segs.length>=2)s+=`<line x1="${R(last[0])}" y1="${R(-last[1])}" x2="0" y2="0" stroke="#8C949E" stroke-width="${R(fs*.07)}" stroke-dasharray="${R(fs*.35)} ${R(fs*.25)}"/>`;
+ gh.forEach(([k,p])=>{s+=`<line x1="${R(last[0])}" y1="${R(-last[1])}" x2="${R(p[0])}" y2="${R(-p[1])}" stroke="#E9A23B" stroke-opacity=".55" stroke-width="${R(fs*.22)}" stroke-dasharray="${R(fs*.3)} ${R(fs*.2)}" stroke-linecap="round"/><text x="${R(p[0]+DIRS[k][0]*fs*.9)}" y="${R(-(p[1]+DIRS[k][1]*fs*.9))}" text-anchor="middle" dominant-baseline="central" font-size="${R(fs*.9)}" fill="#F5C97C" font-weight="800">${DIRS[k][2]}</text>`});
+ if(D.segs.length)s+=`<polyline points="${P.map(P2).join(' ')}" fill="none" stroke="#C9CDD3" stroke-width="${R(fs*.32)}" stroke-linejoin="miter" stroke-linecap="square"/>`;
+ D.segs.forEach((g,i)=>{const a=P[i],b=P[i+1],d=DIRS[g.d],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];const nr=[d[1],-d[0]];const pl=[mid[0]+nr[0]*fs*1.05,mid[1]+nr[1]*fs*1.05],pt2=[mid[0]-nr[0]*fs*.85,mid[1]-nr[1]*fs*.85];
+  s+=`<circle cx="${R(pl[0])}" cy="${R(-pl[1])}" r="${R(fs*.6)}" fill="#0C0E11" stroke="#E9A23B" stroke-width="${R(fs*.07)}"/><text x="${R(pl[0])}" y="${R(-pl[1])}" text-anchor="middle" dominant-baseline="central" font-size="${R(fs*.62)}" font-weight="800" fill="#E9A23B" font-family="JetBrains Mono,monospace">${LET(i)}</text><text x="${R(pt2[0])}" y="${R(-pt2[1])}" text-anchor="middle" dominant-baseline="central" font-size="${R(fs*.55)}" fill="#ECE9E3" font-family="JetBrains Mono,monospace" ${g.d==='u'||g.d==='d'?`transform="rotate(-90 ${R(pt2[0])} ${R(-pt2[1])})"`:''}>${nf(g.len)}</text>`});
+ s+=`<circle cx="0" cy="0" r="${R(fs*.32)}" fill="#5CC28A"/><text x="${R(-fs*.5)}" y="${R(-fs*.6)}" text-anchor="end" font-size="${R(fs*.5)}" fill="#5CC28A" font-family="Inter Tight,sans-serif" font-weight="700">inicio</text>`;
+ if(D.segs.length)s+=`<circle cx="${R(last[0])}" cy="${R(-last[1])}" r="${R(fs*.42)}" fill="#E9A23B" stroke="#0C0E11" stroke-width="${R(fs*.1)}"/>`;
+ return`<svg viewBox="${R(x0-m)} ${R(-y1-m)} ${R(x1-x0+2*m)} ${R(y1-y0+2*m)}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" font-family="Inter Tight,sans-serif">${s}</svg>`}
+function drawSheet(){const D=S.dw;const n=D.segs.length,al=dwAllowed(D);
+ const pad=[['','u',''],['l','·','r'],['','d','']].map(row=>row.map(k=>k===''?'<span></span>':k==='·'?`<span class="dc">${n?LET(n):'A'}</span>`:`<button data-act="dwAdd" data-d="${k}" ${al.includes(k)?'':'disabled'}><b>${DIRS[k][2]}</b><span>${DIRS[k][3]}</span></button>`).join('')).join('');
+ openSheet(`Dibujar paredes · ${n?n+' pared'+(n>1?'es':''):'empieza por la A'}`,`<div class="card" style="padding:6px;background:var(--p2)"><div id="dwPrev" style="height:220px">${dwSVG(D,+D.len||0)}</div></div>
+ <div class="sp8"></div>${n?`<div class="chips">${D.segs.map((g,i)=>`<span class="chip sm"><b class="mono" style="color:var(--ac)">${LET(i)}</b> ${DIRS[g.d][2]} ${nf(g.len)}</span>`).join('')}</div><div class="sp8"></div>`:''}
+ <div class="row" style="gap:12px;align-items:flex-start"><div class="fld" style="flex:1"><label>Longitud de la pared ${LET(n)}</label><div class="mmwrap"><input id="dwLen" class="mm" type="number" inputmode="numeric" placeholder="p. ej. ${n%2?2800:3600}" value="${D.len||''}"><span class="u">mm</span></div><small>${n?'Pulsa hacia dónde sigue (ángulo recto con la anterior).':'Pulsa la dirección de la primera pared.'}</small></div>
+ <div class="dirpad">${pad}</div></div>
+ <p class="sub" style="margin-bottom:0">Escribe la medida y pulsa la flecha. Al cerrar, la app añade lo que falte para volver al inicio y calcula las esquinas sola (normales y hacia dentro).</p>`,
+ `<button class="btn" data-act="dwUndo" ${n?'':'disabled'}>Borrar última</button><button class="btn pri w" data-act="dwClose" ${n>=2?'':'disabled'}>Cerrar y crear plano</button>`);
+ const inp=$('#dwLen');inp.oninput=()=>{D.len=inp.value;$('#dwPrev').innerHTML=dwSVG(D,+inp.value||0)};inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();toast('Ahora pulsa la dirección')}};setTimeout(()=>{try{inp.focus({preventScroll:true})}catch(e){}},60)}
+function dwFinish(D){const segs=D.segs.map(g=>({...g}));const push=(d,len)=>{if(len<1)return true;const l=segs[segs.length-1];if(l.d===d){l.len+=len;return true}if(DANG[l.d]-DANG[d]===180||DANG[d]-DANG[l.d]===180){return false}segs.push({d,len});return true};
+ let E=dwPts(segs).pop();const r=[-E[0],-E[1]];const lastH=['r','l'].includes(segs[segs.length-1].d);
+ const ok=lastH?push(r[1]>0?'u':'d',Math.abs(r[1]))&&push(r[0]>0?'r':'l',Math.abs(r[0])):push(r[0]>0?'r':'l',Math.abs(r[0]))&&push(r[1]>0?'u':'d',Math.abs(r[1]));
+ if(!ok)return{err:'Para cerrar habría que volver sobre la última pared. Revisa las medidas o borra la última.'};
+ if(segs.length>1){const f=segs[0],l=segs[segs.length-1];if(l.d===f.d){f.len+=l.len;segs.pop()}else if(Math.abs(DANG[l.d]-DANG[f.d])===180)return{err:'La última pared se superpone a la primera. Revisa las medidas.'}}
+ if(segs.length<3)return{err:'Hacen falta al menos 3 paredes para cerrar una estancia.'};
+ const P=dwPts(segs);P.pop();let ar=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];ar+=a[0]*b[1]-b[0]*a[1]}
+ let list=segs,rev=false;if(ar>0){rev=true;const opp={r:'l',l:'r',u:'d',d:'u'};list=[segs[0],...segs.slice(1).reverse()].map(g=>({d:opp[g.d],len:g.len}));list[0]={d:segs[0].d,len:segs[0].len};list=[{d:opp[segs[0].d],len:segs[0].len},...segs.slice(1).reverse().map(g=>({d:opp[g.d],len:g.len}))]}
+ const walls=list.map((g,i)=>{const nx=list[(i+1)%list.length];let t=DANG[g.d]-DANG[nx.d];while(t>180)t-=360;while(t<=-180)t+=360;return{len:Math.round(g.len),ang:180-t}});
+ return{walls,rev,added:segs.length-D.segs.length}}
+
 /* ---------------- Plano nuevo (asistente) ---------------- */
 function npWalls(d){return d.g==='irregular'&&d.n!==4?regular(d.n,d.W,d.L):preset(d.g,d.W,d.L)}
 function newPlanSheet(step=1){const d=S.np;
- if(step===1){openSheet('Plano nuevo · 1 de 2 · Forma',`<p class="sub" style="margin-top:0">Elige la forma que más se parezca a la cocina vista desde arriba. Las letras indican cómo se llamará cada pared y la flecha el sentido en el que se mide (de izquierda a derecha, mirándola desde dentro).</p>
+ if(step===1){openSheet('Plano nuevo · 1 de 2 · Forma',`<button class="btn w" data-act="draw" style="justify-content:flex-start;gap:12px;padding:12px 14px;margin-bottom:12px;border-color:var(--ac);background:var(--acbg)"><span style="font-size:22px">✎</span><span style="text-align:left"><b style="display:block">Dibujar pared a pared</b><span class="sub" style="font-size:12px">Escribe cada medida y pulsa ↑ → ↓ ←. Cada pared sale en ángulo recto con la anterior.</span></span></button>
+  <p class="sub" style="margin-top:0">O elige una forma tipo, la que más se parezca a la cocina vista desde arriba. Las letras indican cómo se llamará cada pared y la flecha el sentido en el que se mide (de izquierda a derecha, mirándola desde dentro).</p>
   <div class="shapes">${SHAPES.map(([k,l,sb])=>`<button class="shape ${d.g===k?'on':''}" data-act="npShape" data-g="${k}"><div class="th">${roomThumb(fakeP(k==='irregular'?npWalls({...d,g:k}):preset(k,3600,2800)),{arrows:true})}</div><b>${l}</b><span>${sb}</span></button>`).join('')}</div>
   ${d.g==='irregular'?`<div class="fld" style="margin-top:12px"><label>Número de paredes</label><div class="chips">${[3,4,5,6,7,8].map(k=>`<button class="chip sm ${d.n===k?'on':''}" data-act="npN" data-n="${k}">${k}</button>`).join('')}</div><small>Se dibuja un polígono regular; después ajustas cada longitud y cada ángulo.</small></div>`:''}`,
   `<button class="btn w" data-act="closeSheet">Cancelar</button><button class="btn pri w" data-act="npStep" data-s="2">Siguiente</button>`);return}
@@ -812,7 +856,7 @@ function newPlanSheet(step=1){const d=S.np;
 /* ---------------- Vista: Plano / Muebles ---------------- */
 function vPlan(mode){const M=$('#main');M.className='full';const P=S.P;
  const lay=S.layers;const bar=mode==='geo'?`
-  <button class="chip" data-act="newPlan" style="border-color:var(--ac);color:var(--ac2)">+ Plano nuevo</button><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instalaciones</button><button class="chip ${lay.mods?'on':''}" data-act="layer" data-l="mods">Mobiliario</button><button class="chip ${lay.grid?'on':''}" data-act="layer" data-l="grid">Cuadrícula</button><span class="muted" style="font-size:12px;margin-left:4px;white-space:nowrap">Ajuste</span><div class="seg" style="flex:none">${[1,10,50,100].map(v=>`<button class="${S.snap===v?'on':''}" data-act="snap" data-v="${v}">${v}</button>`).join('')}</div>`
+  <button class="chip" data-act="newPlan" style="border-color:var(--ac);color:var(--ac2)">+ Plano nuevo</button><button class="chip" data-act="draw" style="border-color:var(--ac);color:var(--ac2)">✎ Dibujar paredes</button><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instalaciones</button><button class="chip ${lay.mods?'on':''}" data-act="layer" data-l="mods">Mobiliario</button><button class="chip ${lay.grid?'on':''}" data-act="layer" data-l="grid">Cuadrícula</button><span class="muted" style="font-size:12px;margin-left:4px;white-space:nowrap">Ajuste</span><div class="seg" style="flex:none">${[1,10,50,100].map(v=>`<button class="${S.snap===v?'on':''}" data-act="snap" data-v="${v}">${v}</button>`).join('')}</div>`
  :`<button class="chip" data-act="auto" data-t="lineal">Lineal</button><button class="chip" data-act="auto" data-t="L">En L</button><button class="chip" data-act="auto" data-t="U">En U</button><button class="chip" data-act="auto" data-t="isla">Con isla</button><span style="width:1px;height:22px;background:var(--ln);flex:none"></span><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.tri?'on':''}" data-act="layer" data-l="tri">Triángulo</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instal.</button>`;
  M.innerHTML=`<div class="stage"><div class="bar">${mode==='mods'?`<span class="muted" style="font-size:12px;white-space:nowrap">${ic('magic','i" style="width:16px;height:16px;vertical-align:-3px')} Auto</span>`:''}${bar}</div>
  <div class="cv" id="cv"><svg class="plan" id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -927,6 +971,13 @@ const ACT={
  newPlan:()=>{S.np={g:'rectangular',W:+S.P.room.approxW||3600,L:+S.P.room.approxL||2800,H:+S.P.room.height||2600,n:5};newPlanSheet(1)},
  npShape:a=>{S.np.g=a.dataset.g;newPlanSheet(1)},npN:a=>{S.np.n=+a.dataset.n;newPlanSheet(1)},npStep:a=>newPlanSheet(+a.dataset.s),
  npCreate:()=>{const d=S.np,P=S.P;P.room.geometry=d.g;P.room.approxW=d.W;P.room.approxL=d.L;P.room.height=d.H;P.room.walls=npWalls(d);P.openings=[];P.obstacles=[];P.inst=[];P.mods=[];P.shot=null;S.vb={};S.sel=null;S.focusWall=0;S.curWall=0;S.elevWall=0;V.dirty=true;commit();closeSheet();nav('medir');toast('Plano vacío creado · empieza midiendo la pared A');setTimeout(()=>{const el=$('[data-bind="room.walls.0.len"]');if(el){el.scrollIntoView({block:'center'});el.select&&el.select()}},150)},
+ draw:()=>{S.dw={segs:[],len:''};drawSheet()},
+ dwAdd:a=>{const D=S.dw,v=Math.round(+String($('#dwLen').value).replace(',','.'));if(!(v>0)){toast('Escribe primero la longitud en mm');$('#dwLen').focus();return}D.segs.push({d:a.dataset.d,len:v});D.len='';drawSheet()},
+ dwUndo:()=>{S.dw.segs.pop();drawSheet()},
+ dwClose:()=>{const r=dwFinish(S.dw);if(r.err)return toast(r.err);const go=()=>{const P=S.P,xs=dwPts(S.dw.segs);P.room.walls=r.walls;P.room.geometry=r.walls.length===4?'rectangular':r.walls.length===6?'L':'irregular';
+  const G=geo(P),b=bounds(G);P.room.approxW=Math.round(b.w);P.room.approxL=Math.round(b.h);P.openings=[];P.obstacles=[];P.inst=[];P.mods=[];P.shot=null;S.vb={};S.sel=null;S.focusWall=0;S.curWall=0;S.elevWall=0;V.dirty=true;commit();closeSheet();nav('medir');
+  toast(`Plano creado con ${r.walls.length} paredes`+(r.added>0?` · ${r.added} añadida${r.added>1?'s':''} para cerrar`:'')+(r.rev?' · sentido de recorrido ajustado':''))};
+  if(S.P.openings.length||S.P.mods.length||S.P.inst.length)confirmBox('Se sustituirán las paredes y se borrarán puertas, ventanas, instalaciones y muebles del plano actual. Puedes deshacerlo con ↶.',go,'Crear plano');else go()},
  setDoor:a=>{const o=S.P.openings.find(x=>x.id===a.dataset.id);if(!o)return;o.hinge=a.dataset.h;o.swing=a.dataset.s;V.dirty=true;commit();liveRefresh();S.sheetFn&&S.sheetFn();toast(o.kind==='corredera'?`Recoge a la ${o.hinge==='izq'?'izquierda':'derecha'}`:`Puerta a ${doorMano(o)}`)},
  focusWall:a=>{if(a.closest('button:not([data-act="focusWall"])'))return;S.focusWall=+a.dataset.i;S.live&&S.live()},
  geom:a=>{const g=a.dataset.g;confirmBox(`¿Redibujar las paredes con forma <b>${(SHAPES.find(x=>x[0]===g)||[,g])[1]}</b> a partir de ${nf(S.P.room.approxW)} × ${nf(S.P.room.approxL)} mm? Se sustituirán las longitudes actuales; revisa después huecos y muebles.`,()=>{const P=S.P;P.room.geometry=g;P.room.walls=preset(g,P.room.approxW,P.room.approxL);const n=P.room.walls.length;[P.openings,P.obstacles,P.inst,P.mods].forEach(arr=>arr.forEach(x=>{if(x.wall!=null&&x.wall>=n)x.wall=n-1}));V.dirty=true;commit();render(true)},'Generar')},
