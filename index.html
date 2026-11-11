@@ -126,6 +126,8 @@ h3{margin:0;font-size:16px;font-weight:700}
 .dirpad button:disabled{background:var(--p2);border-color:var(--ln);color:var(--ln2);opacity:.45}
 .dirpad .dc{display:grid;place-items:center;border-radius:50%;margin:9px;background:var(--p2);border:1px dashed var(--ln2);font-family:var(--mono);font-weight:800;color:var(--ac)}
 .btn:disabled{opacity:.4}
+.ikt{width:100%;border-collapse:collapse;font-size:12px}.ikt th,.ikt td{padding:6px 5px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:middle}.ikt th{font-size:10.5px;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}.ikt td.m{font-family:var(--mono);white-space:nowrap}.ikt input{width:86px;background:var(--p2);border:1px solid var(--ln);border-radius:8px;padding:5px 6px;font-family:var(--mono);font-size:12px}
+.doc .ikt th,.doc .ikt td{border-color:#e4e2dd}.doc .ikt th{color:#777}
 .doorpick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .doorpick button{background:var(--p2);border:1px solid var(--ln);border-radius:12px;padding:6px 8px 9px;color:#C9CDD3;display:flex;flex-direction:column;gap:2px;text-align:left}
 .doorpick button.on{border-color:var(--ac);background:var(--acbg);color:var(--ac2)}
@@ -258,7 +260,7 @@ textarea.code{font-family:var(--mono);font-size:11.5px;min-height:160px}
    Unidades internas: milímetros. Coordenadas de planta: x→, y↑.
    Las paredes se recorren en sentido horario; el interior queda a la derecha.
    ========================================================= */
-const VERSION='v1.9';
+const VERSION='v2.0';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const uid=()=>Math.random().toString(36).slice(2,9);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -327,7 +329,72 @@ function newItem(kind,len){const id=uid(),mid=v=>Math.max(0,Math.round((len-v)/2
  if(kind==='hueco')return{id,cat:'op',type:'hueco',w:900,h:2100,sill:0,off:mid(900)};
  if(kind==='obst')return{id,cat:'ob',type:'pilar',w:300,d:250,h:null,z:0,off:0};
  const z={desague:450,agua_fria:550,agua_caliente:550,gas:600,enchufe:1100,horno:200,vitro:200,campana:2100,ventilacion:2350,caldera:1500}[kind]||1100;return{id,cat:'in',type:kind,z,act:'mantener',off:Math.round(len/2),off2:Math.round(len/2)}}
-const HANDLES={gola:'Gola (sin tirador)',unero:'Uñero',perfil:'Perfil superior',barra:'Barra',pomo:'Pomo',push:'Push / apertura por presión'};
+/* ---------- Sistema IKEA METOD (medidas comerciales) ----------
+   Fuente: fichas de producto de ikea.es / ikea.com (nov 2026). Colores aproximados; la disponibilidad cambia. */
+const IKEA_SERIES=[
+ {s:'VOXTORP',d:'liso',h:'integrado',v:[['blanco mate','#EEECE6','mate','liso'],['alto brillo / blanco','#F7F7F5','brillo','lacado'],['efecto roble','#B8946A','satinado','madera'],['gris oscuro','#4A4B4C','mate','liso'],['efecto acero inoxidable','#B9BBBC','satinado','liso']]},
+ {s:'UPPLÖV',d:'liso',h:'integrado',v:[['beige oscuro mate','#B9A48A','mate','liso'],['antracita mate','#3A3B3D','mate','liso']]},
+ {s:'VEDDINGE',d:'liso',h:'aparte',v:[['blanco','#F3F2EE','satinado','liso']]},
+ {s:'VALLSTENA',d:'liso',h:'aparte',v:[['blanco','#F1F0EC','mate','liso']]},
+ {s:'RINGHULT',d:'liso',h:'aparte',v:[['blanco alto brillo','#F8F8F6','brillo','lacado'],['gris claro alto brillo','#C9CBCB','brillo','lacado']]},
+ {s:'KALLARP',d:'liso',h:'aparte',v:[['alto brillo gris verde oscuro','#4C5A55','brillo','lacado']]},
+ {s:'NICKEBO',d:'liso',h:'aparte',v:[['antracita mate','#34363A','mate','liso'],['gris verde mate','#8E9A8C','mate','liso']]},
+ {s:'ASKERSUND',d:'liso',h:'aparte',v:[['efecto fresno claro','#D9C7A8','satinado','madera']]},
+ {s:'TISTORP',d:'liso',h:'aparte',v:[['efecto nogal marrón','#6E4C35','satinado','madera']]},
+ {s:'STENSTA',d:'liso',h:'aparte',v:[['chapa de fresno marrón oscuro','#4E3A2C','satinado','madera']]},
+ {s:'VÅRSTA',d:'liso',h:'aparte',v:[['acero inoxidable','#BFC1C2','satinado','liso']]},
+ {s:'ASPUDDEN',d:'liso',h:'aparte',v:[['gris claro','#C8C8C3','mate','liso'],['gris verde oscuro','#4B5A52','mate','liso'],['blanco mate','#EFEEEA','mate','liso']]},
+ {s:'BODBYN',d:'enmarcado',h:'aparte',v:[['hueso','#E9E3D6','mate','lacado'],['gris','#9EA19F','mate','lacado']]},
+ {s:'STENSUND',d:'enmarcado',h:'aparte',v:[['blanco','#F1EFE9','mate','lacado'],['verde claro','#B9C6B0','mate','lacado'],['beige','#D9CDB8','mate','lacado']]},
+ {s:'HAVSTORP',d:'enmarcado',h:'aparte',v:[['beige','#D8CAB4','mate','lacado'],['gris claro','#C9CAC6','mate','lacado'],['verde oscuro','#2F4A3D','mate','lacado']]},
+ {s:'AXSTAD',d:'enmarcado',h:'aparte',v:[['blanco mate','#ECEBE6','mate','lacado'],['azul mate','#4F6378','mate','lacado']]},
+ {s:'ENKÖPING',d:'enmarcado',h:'aparte',v:[['blanco / efecto madera','#ECE8E0','satinado','madera'],['efecto nogal marrón','#6A4C36','satinado','madera']]},
+ {s:'FORSBACKA',d:'enmarcado',h:'aparte',v:[['roble','#C3A07A','satinado','madera']]},
+ {s:'LERHYTTAN',d:'enmarcado',h:'aparte',v:[['tinte negro','#232323','satinado','madera'],['gris claro','#C4C5C2','satinado','madera']]},
+ {s:'SINARP',d:'ranurado',h:'aparte',v:[['marrón','#7A5236','satinado','madera']]}
+];
+const METOD_W={puertas:[200,300,400,600,800],cajonera:[300,400,600,800],fregadero:[600,800],placa:[600,800],lavavajillas:[600],horno_bajo:[600],esquina:[1280,880],botellero:[200],relleno:[30,50,80],
+ alto_puertas:[200,300,400,600,800],alto_abatible:[600,800],escurridor:[600,800],campana:[600,800],alto_esquina:[680],alto_relleno:[30,50,80],frigorifico:[600],horno_col:[600],despensa:[400,600],isla:[1200,1600,1800,2000,2400]};
+const isMetod=P=>!!(P&&P.sys&&P.sys.type==='metod');
+const widthsOf=(kind,P)=>isMetod(P)&&METOD_W[kind]?METOD_W[kind]:KINDS[kind].widths;
+function applySys(P){if(!isMetod(P))return;const s=P.sys,legs=+s.legs||80,ct=+s.ct||28,col=+s.col||2200;Object.assign(P.ergo,{plinth:legs,ctThick:ct,counter:legs+800+ct,colH:legs+col,wallH:col-1400,gap:(legs+1400)-(legs+800+ct)})}
+const IKEA_REF_KEY='cocinaspro.ikea.refs';
+const IKEA_DEF={'METOD estructura armario bajo 60x60x80 blanco':'502.056.26','METOD estructura armario bajo 80x60x80 blanco':'102.056.33','METOD estructura armario bajo p/horno/fregadero 60x60x80 blanco':'202.055.43','METOD estructura armario bajo p/horno/fregadero 80x60x80 blanco':'502.154.75','METOD estructura armario alto 60x60x200 blanco':'602.125.65','METOD estructura armario alto 60x60x220 blanco':'902.125.64','METOD estructura armario alto p/frig/horn 60x60x220 blanco':'502.135.70','METOD riel de suspensión 200 cm':'602.056.64','FÖRBÄTTRA zócalo 220 cm':'403.275.05','METOD pata 8 cm (4 uds)':'402.055.99','UTRUSTA bisagra (2 uds)':'805.248.82'};
+function ikeaRefs(){try{return JSON.parse(localStorage.getItem(IKEA_REF_KEY))||{}}catch(e){return{}}}
+function ikeaRefSave(k,f,v){try{const r=ikeaRefs();r[k]=r[k]||{};r[k][f]=v;r[k].fecha=new Date().toISOString().slice(0,10);localStorage.setItem(IKEA_REF_KEY,JSON.stringify(r))}catch(e){}}
+function metodName(m,P){const b=mbox(m,P),W=m.w/10;
+ if(m.kind==='relleno'||m.kind==='alto_relleno')return`Regleta de relleno ${m.w} mm (cortar a medida)`;
+ if(m.cat==='bajo'){if(m.kind==='esquina')return m.w===880?'METOD estructura armario bajo esquina 88x88x80 blanco':'METOD estructura armario bajo esquina 128x68x80 blanco';
+  return`METOD estructura armario bajo${['fregadero','horno_bajo'].includes(m.kind)?' p/horno/fregadero':''} ${W}x60x80 blanco`}
+ if(m.cat==='alto'){const h=Math.round((b.z1-b.z0)/10);if(m.kind==='alto_esquina')return`METOD estructura armario de pared esquinero 68x68x${h} blanco`;return`METOD estructura armario de pared${m.kind==='campana'?' p/campana':''} ${W}x37x${h} blanco`}
+ if(m.cat==='col')return`METOD estructura armario alto${['frigorifico','horno_col'].includes(m.kind)?' p/frig/horn':''} ${W}x60x${Math.round((b.z1-E(P).plinth)/10)} blanco`;
+ return`Isla: estructuras METOD armario bajo (${m.w} mm)`}
+const GORD=['Estructuras','Frentes','Interior','Montaje','Remates','Encimera'];
+function metodList(P){const ser=(P.finish.series&&P.finish.series.s)?`${P.finish.series.s} ${P.finish.series.v}`:'(serie de frentes)';const rows={};const add=(d,q=1,g='')=>{rows[d]=rows[d]||{d,q:0,g};rows[d].q+=q};const e=E(P);
+ const G=geo(P);let railLen=0,plinthLen=0,ctLen=0,legs=0;const lc=Math.round(e.plinth/10);
+ P.mods.forEach(m=>{const isl=m.cat==='isla';
+  if(isl){const n=Math.max(1,Math.round(m.w/600)),w=Math.round(m.w/n/100)*10;add(`METOD estructura armario bajo ${w}x60x80 blanco`,n*2,'Estructuras');legs+=n*2*4;plinthLen+=2*m.w+2*(m.d||900);ctLen+=m.w}
+  else if(m.kind==='relleno'||m.kind==='alto_relleno'){add(metodName(m,P),1,'Remates');return}
+  else add(metodName(m,P),1,'Estructuras');
+  if(m.cat==='bajo'){railLen+=m.w;plinthLen+=m.w;ctLen+=m.w;legs+=4}if(m.cat==='col'){railLen+=m.w;plinthLen+=m.w;legs+=4}if(m.cat==='alto')railLen+=m.w;
+  const fm=isl?{...m,cat:'bajo',kind:'isla'}:m;const mult=isl?2:1;
+  frontLayout(fm,P,G.ws[m.wall]?.len||1e9).forEach(f=>{const w=Math.round(f.w/10),h=Math.round(f.h/10);
+   if(f.type==='drawer'){add(`Frente de cajón ${ser} ${w}x${h}`,mult,'Frentes');add(`MAXIMERA cajón ${h<=10?'bajo':h<=20?'medio':'alto'} ${w}x60`,mult,'Interior')}
+   else if(f.type==='door'){add(`Puerta ${ser} ${w}x${h}`,1,'Frentes');add('UTRUSTA bisagra (2 uds)',h>=140?2:1,'Interior');if(m.cat!=='col')add(`UTRUSTA balda ${w}x${m.cat==='alto'?37:60}`,h>=100?2:1,'Interior')}
+   else if(f.type==='panel')add(`Frente lavavajillas ${ser} ${w}x${h}`,1,'Frentes')})});
+ const rails=Math.ceil(railLen/2000);if(rails)add('METOD riel de suspensión 200 cm',rails,'Montaje');
+ if(legs)add(`METOD pata ${lc} cm (4 uds)`,Math.ceil(legs/4),'Montaje');
+ if(plinthLen)add(lc===8?'FÖRBÄTTRA zócalo 220 cm':`FÖRBÄTTRA zócalo 220 cm (alto ${lc} cm)`,Math.ceil(plinthLen/2200),'Montaje');
+ if(ctLen)add(`Encimera ${nf(e.ct)} mm de grosor (metros lineales)`,Math.round(ctLen/100)/10,'Encimera');
+ G.ws.forEach((w,i)=>{['base','alto'].forEach(lv=>{const ms=P.mods.filter(m=>m.wall===i&&(lv==='alto'?m.cat==='alto':m.cat==='bajo'||m.cat==='col')).sort((a,b)=>a.off-b.off);if(!ms.length)return;const groups=[];ms.forEach(m=>{const g=groups[groups.length-1];if(g&&m.off-g.end<5){g.end=Math.max(g.end,m.off+m.w);g.ms.push(m)}else groups.push({st:m.off,end:m.off+m.w,ms:[m]})});
+  groups.forEach(g=>{[[g.st,g.ms[0]],[g.end,g.ms[g.ms.length-1]]].forEach(([x,m],k)=>{const atWall=k===0?x<100:w.len-x<100;if(atWall)return;const bx=mbox(m,P);const h=lv==='alto'?Math.round((bx.z1-bx.z0)/10):m.cat==='col'?Math.round((bx.z1-e.plinth)/10):80;add(`Panel de remate ${ser} ${lv==='alto'?39:62}x${h}`,1,'Remates')})})})});
+ const refs=ikeaRefs();return Object.values(rows).map(r=>({...r,ref:(refs[r.d]&&refs[r.d].ref)||IKEA_DEF[r.d]||'',price:refs[r.d]&&refs[r.d].price!=null&&refs[r.d].price!==''?+refs[r.d].price:null,fecha:refs[r.d]?.fecha||''})).sort((a,b)=>GORD.indexOf(a.g)-GORD.indexOf(b.g)||a.d.localeCompare(b.d,'es'))}
+function listHTML(P,edit){const L=metodList(P);let tot=0,miss=0,g0='';const rows=L.map(r=>{const t=r.price!=null?r.price*r.q:null;if(t!=null)tot+=t;else miss++;const gh=r.g!==g0?`<tr><td colspan="5" style="font-weight:700;padding-top:12px">${r.g}</td></tr>`:'';g0=r.g;
+  return gh+`<tr><td class="m">${edit?`<input class="ikr" data-k="${esc(r.d)}" data-f="ref" value="${esc(r.ref)}" placeholder="ref.">`:esc(r.ref||'—')}</td><td>${esc(r.d)}</td><td class="m">${nf(r.q,r.q%1?1:0)}</td><td class="m">${edit?`<input class="ikr" inputmode="decimal" data-k="${esc(r.d)}" data-f="price" value="${r.price??''}" placeholder="€">`:(r.price!=null?nf(r.price,2)+' €':'—')}</td><td class="m">${t!=null?nf(t,2)+' €':'—'}</td></tr>`}).join('');
+ return`<table class="ikt"><thead><tr><th>Ref.</th><th>Artículo</th><th>Cant.</th><th>Precio</th><th>Total</th></tr></thead><tbody>${rows||'<tr><td colspan="5">Sin módulos en el plano.</td></tr>'}</tbody><tfoot><tr><td></td><td><b>Total${miss?` (faltan ${miss} precios)`:''}</b></td><td></td><td></td><td class="m"><b>${nf(tot,2)} €</b></td></tr></tfoot></table>`}
+function listCSVikea(P){return'Ref;Artículo;Cantidad;Precio;Total\n'+metodList(P).map(r=>[r.ref,r.d,String(r.q).replace('.',','),r.price!=null?String(r.price).replace('.',','):'',r.price!=null?String(Math.round(r.price*r.q*100)/100).replace('.',','):''].join(';')).join('\n')}
+
+const HANDLES={integrado:'Tirador integrado',gola:'Gola (sin tirador)',unero:'Uñero',perfil:'Perfil superior',barra:'Barra',pomo:'Pomo',push:'Push / apertura por presión'};
 
 /* ---------------- Estado ---------------- */
 const STORE='cocinaspro.v1';
@@ -338,7 +405,7 @@ function E(P){const e=P.ergo;return{top:+e.counter,plinth:+e.plinth,ct:+e.ctThic
 function mbox(m,P){const e=E(P);
  if(m.cat==='bajo')return{z0:0,z1:e.top,d:m.d||600};
  if(m.cat==='isla')return{z0:0,z1:e.top,d:m.d||900};
- if(m.cat==='alto'){const z0=m.z??e.wallZ;return{z0,z1:z0+(m.h||e.wallH),d:m.d||350}}
+ if(m.cat==='alto'){const z0=m.z??e.wallZ;return{z0,z1:z0+(m.h||e.wallH),d:m.d||(isMetod(P)?370:350)}}
  return{z0:0,z1:m.h||e.colH,d:m.d||600}}
 
 function defaultProject(){
@@ -412,13 +479,13 @@ function wallIntervals(P,G,wi,sr,level,er=0){const w=G.ws[wi],e=E(P);if(!w)retur
  if(level==='alto')P.inst.filter(i=>i.wall===wi&&i.type==='caldera').forEach(i=>bl.push([i.off-300,i.off+300]));
  bl.sort((a,b)=>a[0]-b[0]);const out=[];let cur=0;bl.forEach(([a,b])=>{if(a>cur)out.push([cur,Math.min(a,w.len)]);cur=Math.max(cur,b)});
  return out.filter(([a,b])=>b-a>=20)}
-function fillWidths(L,widths){const U=50,n=Math.floor(L/U),cost=w=>1+(w===600?0:w===450?.35:.6);const dp=new Array(n+1).fill(Infinity),pr=new Array(n+1).fill(0);dp[0]=0;
+function fillWidths(L,widths,mt){const U=50,n=Math.floor(L/U),cost=mt?(w=>1+({600:0,800:.1,400:.4,300:.5,200:.6})[w]):(w=>1+(w===600?0:w===450?.35:.6));const dp=new Array(n+1).fill(Infinity),pr=new Array(n+1).fill(0);dp[0]=0;
  for(let j=1;j<=n;j++)widths.forEach(w=>{const k=w/U;if(k<=j&&dp[j-k]+cost(w)<dp[j]){dp[j]=dp[j-k]+cost(w);pr[j]=w}});
  let j=n;while(j>0&&dp[j]===Infinity)j--;const out=[];let jj=j;while(jj>0){out.push(pr[jj]);jj-=pr[jj]/U}
  out.sort((a,b)=>b-a);const left=Math.round(L-j*U);if(left>=150)out.push(-left);else if(left>=20)out.push(-left);return out}
 
 /* ---------------- Distribución automática ---------------- */
-function autoLayout(P,type,silent){const G=geo(P),n=G.ws.length,e=E(P);if(n<3)return;P.mods=[];
+function autoLayout(P,type,silent){const G=geo(P),n=G.ws.length,e=E(P);if(n<3)return;P.mods=[];const mt=isMetod(P);const WB=mt?[200,300,400,600,800]:[300,400,450,500,600,800,900],ESQ=mt?1280:1000,RES=mt?680:600,RESA=mt?370:350;
  const free=i=>wallIntervals(P,G,i,0,'base').reduce((s,[a,b])=>s+(b-a),0);
  let main=0;for(let i=1;i<n;i++)if(free(i)>free(main)+1)main=i;
  const prev=(main-1+n)%n,next=(main+1)%n;let run=[main];
@@ -427,13 +494,13 @@ function autoLayout(P,type,silent){const G=geo(P),n=G.ws.length,e=E(P);if(n<3)re
  const isCorner=(a,b)=>b===(a+1)%n&&Math.abs(G.ws[a].ang-90)<35;
  const add=o=>{const m=Object.assign({id:uid(),h:null,d:null,z:null},o);P.mods.push(m);return m};
  const winHit=(wi,a,b)=>P.openings.some(o=>o.wall===wi&&o.type==='ventana'&&a<o.off+o.w&&b>o.off);
- const ints={};run.forEach((wi,k)=>{const sr=(k>0&&isCorner(run[k-1],wi))?600:0;const er=(k<run.length-1&&isCorner(run[k+1],wi))?600:0;ints[wi]=wallIntervals(P,G,wi,sr,'base',0)});
+ const ints={};run.forEach((wi,k)=>{const sr=(k>0&&isCorner(run[k-1],wi))?RES:0;const er=(k<run.length-1&&isCorner(run[k+1],wi))?600:0;ints[wi]=wallIntervals(P,G,wi,sr,'base',0)});
  const colK=(type==='lineal'&&G.ws[main].len<3200)?['frigorifico']:['frigorifico','horno_col'];const need=colK.length*600;let cols=false;
  {const wi=run[0],iv=ints[wi][0];if(iv&&iv[1]-iv[0]>=need+1200&&!winHit(wi,iv[0],iv[0]+need)){colK.forEach((k,j)=>add({cat:'col',kind:k,wall:wi,off:iv[0]+j*600,w:600}));iv[0]+=need;cols=true}}
  if(!cols){const wi=run[run.length-1],arr=ints[wi],iv=arr[arr.length-1];if(iv&&iv[1]-iv[0]>=need+1200&&!winHit(wi,iv[1]-need,iv[1])){[...colK].reverse().forEach((k,j)=>add({cat:'col',kind:k,wall:wi,off:iv[1]-need+j*600,w:600}));iv[1]-=need;cols=true}}
  run.forEach((wi,k)=>{const w=G.ws[wi];const cn=k<run.length-1&&isCorner(wi,run[k+1]);ints[wi].forEach(iv=>{let[a,b]=iv;if(b-a<150)return;
-  if(cn&&Math.abs(b-w.len)<1&&b-a>=1000){add({cat:'bajo',kind:'esquina',wall:wi,off:b-1000,w:1000});b-=1000}
-  let x=a;fillWidths(b-a,[300,400,450,500,600,800,900]).forEach(wd=>{const W_=Math.abs(wd);add({cat:'bajo',kind:wd<0?(W_>=150?'botellero':'relleno'):'puertas',wall:wi,off:x,w:W_});x+=W_})})});
+  if(cn&&Math.abs(b-w.len)<1&&b-a>=ESQ){add({cat:'bajo',kind:'esquina',wall:wi,off:b-ESQ,w:ESQ});b-=ESQ}
+  let x=a;fillWidths(b-a,WB,mt).forEach(wd=>{const W_=Math.abs(wd);add({cat:'bajo',kind:wd<0?(W_>=150&&!mt?'botellero':'relleno'):'puertas',wall:wi,off:x,w:W_});x+=W_})})});
  const bases=()=>P.mods.filter(m=>m.cat==='bajo'&&m.kind==='puertas');const cen=m=>W2(G.ws[m.wall],m.off+m.w/2,300);
  const adj=(a,b)=>a.wall===b.wall&&(Math.abs(a.off+a.w-b.off)<1||Math.abs(b.off+b.w-a.off)<1);
  let tgt=null;const win=P.openings.find(o=>o.type==='ventana'&&run.includes(o.wall)&&o.sill>=e.top-50);
@@ -447,12 +514,12 @@ function autoLayout(P,type,silent){const G=geo(P),n=G.ws.length,e=E(P);if(n<3)re
  const hob=pickMin(cand,m=>hT?dist(cen(m),hT):(sink?Math.abs(dist(cen(m),cen(sink))-1500):0));
  if(hob){hob.kind='placa';bases().forEach(m=>{if(adj(m,hob)&&m.w>=400)m.kind='cajonera'})}
  let alt=0;bases().forEach(m=>{if(m.w>=450&&(alt++%2===0))m.kind='cajonera'});
- run.forEach((wi,k)=>{const sr=(k>0&&isCorner(run[k-1],wi))?350:0;let iv=wallIntervals(P,G,wi,sr,'alto');
+ run.forEach((wi,k)=>{const sr=(k>0&&isCorner(run[k-1],wi))?RESA:0;let iv=wallIntervals(P,G,wi,sr,'alto');
   if(hob&&hob.wall===wi){const a=hob.off,b=hob.off+hob.w;if(!winHit(wi,a,b)){iv=iv.flatMap(([x0,x1])=>x1<=a||x0>=b?[[x0,x1]]:[[x0,a],[b,x1]].filter(([p,q])=>q-p>=20));add({cat:'alto',kind:'campana',wall:wi,off:a,w:hob.w})}}
-  iv.forEach(([a,b])=>{if(b-a<150)return;let x=a;fillWidths(b-a,[300,400,450,500,600,800,900]).forEach(wd=>{const W_=Math.abs(wd);if(wd<0&&W_<20)return;add({cat:'alto',kind:wd<0?'alto_relleno':'alto_puertas',wall:wi,off:x,w:W_});x+=W_})})});
+  iv.forEach(([a,b])=>{if(b-a<150)return;let x=a;fillWidths(b-a,WB,mt).forEach(wd=>{const W_=Math.abs(wd);if(wd<0&&W_<20)return;add({cat:'alto',kind:wd<0?'alto_relleno':'alto_puertas',wall:wi,off:x,w:W_});x+=W_})})});
  if(sink){const ab=P.mods.find(m=>m.cat==='alto'&&m.kind==='alto_puertas'&&m.wall===sink.wall&&m.off<=sink.off+sink.w/2&&m.off+m.w>=sink.off+sink.w/2&&m.w>=600);if(ab)ab.kind='escurridor'}
  if(type==='isla'){const mw=G.ws[main];const depth=Math.max(...G.pts.map(p=>dot(sub(p,mw.a),mw.n)));const needD=600+e.aisle+900+e.aisle;
-  const L=Math.floor(Math.min(2400,mw.len-2*e.aisle)/300)*300;
+  const L=Math.floor(Math.min(2400,mw.len-2*e.aisle)/(mt?200:300))*(mt?200:300);
   if(depth>=needD&&L>=1200){const c=W2(mw,mw.len/2,600+e.aisle+450);add({cat:'isla',kind:'isla',x:c[0],y:c[1],rot:Math.round(Math.atan2(mw.u[1],mw.u[0])*180/Math.PI),w:L,d:900,wall:null,off:0})}
   else if(!silent)toast(`Sin espacio para isla con pasillos de ${e.aisle} mm (fondo disponible ${nf(depth)} mm).`)}
  const sw=doorSwings(P,G);let removed=0;P.mods=P.mods.filter(m=>{const fp=footprint(m,P,G),b=mbox(m,P);if(sw.some(s=>s.o.h>b.z0&&polyHit(fp,s.poly))){removed++;return false}return true});
@@ -513,6 +580,8 @@ function validate(P){const G=geo(P),out=[],e=E(P),C=codes(P);const add=(sev,msg,
  P.inst.filter(i=>i.type==='caldera').forEach(i=>{const w=G.ws[i.wall];if(!w)return;P.mods.filter(m=>m.wall===i.wall&&m.cat!=='bajo').forEach(m=>{const b=mbox(m,P);if(i.off>m.off&&i.off<m.off+m.w&&i.z>b.z0&&i.z<b.z1)add('warn',`La caldera queda dentro de ${C[m.id]}: mueble específico con ventilación y acceso.`,m.id)})});
  if(e.gap<500||e.gap>650)add('warn',`Separación encimera–altos de ${e.gap} mm (referencia 500–650 mm).`,'ergo');
  if(e.top<850||e.top>950)add('info',`Altura de encimera ${e.top} mm: fuera del rango habitual 850–950 mm. Comprobar con la estatura del usuario.`,'ergo');
+ if(isMetod(P)){P.mods.forEach(m=>{if(m.cat==='isla')return;const ws=METOD_W[m.kind];if(m.kind==='relleno'||m.kind==='alto_relleno'){if(m.w>80)add('warn',`${C[m.id]} regleta de ${m.w} mm: con más de 80 mm conviene un panel o un módulo METOD de 200 mm.`,m.id);return}if(ws&&!ws.includes(m.w))add('warn',`${lab(m)}: ${m.w} mm no es un ancho METOD (${ws.join(' · ')}).`,m.id)});
+  P.mods.filter(m=>m.cat!=='bajo'&&m.cat!=='isla').forEach(m=>{const w=G.ws[m.wall];if(w&&mbox(m,P).z1>w.h-15&&mbox(m,P).z1<=w.h)add('warn',`${C[m.id]}: quedan menos de 15 mm hasta el techo; los muebles METOD se cuelgan levantándolos sobre el riel.`,m.id)})}
  P.inst.filter(i=>i.act==='desplazar').forEach(i=>add('info',`Intervención: desplazar ${INST[i.type].n.toLowerCase()} en pared ${LET(i.wall)} de ${nf(i.off)} a ${nf(i.off2)} mm.`,i.id));
  return out}
 
@@ -601,26 +670,26 @@ function planSVG(P,o={}){const G=geo(P),T=TH[o.theme||'dark'],t=G.t,L=o.layers||
 const wrapSVG=(r,extra='')=>`<svg viewBox="${R(r.vb.x)} ${R(r.vb.y)} ${R(r.vb.w)} ${R(r.vb.h)}" xmlns="http://www.w3.org/2000/svg" ${extra}>${r.inner}</svg>`;
 
 /* ---------------- Frentes paramétricos ---------------- */
-function frontLayout(m,P,wallLen){const e=E(P),W=m.w,out=[],b=mbox(m,P);const dbl=(x,y,w,h,type='door')=>{if(w>=650){out.push({x,y,w:w/2,h,type,hinge:'l'},{x:x+w/2,y,w:w/2,h,type,hinge:'r'})}else out.push({x,y,w,h,type,hinge:m.off+w/2>(wallLen||1e9)/2?'r':'l'})};
+function frontLayout(m,P,wallLen){const e=E(P),W=m.w,out=[],b=mbox(m,P),mt=isMetod(P);const dbl=(x,y,w,h,type='door')=>{if(w>=650){out.push({x,y,w:w/2,h,type,hinge:'l'},{x:x+w/2,y,w:w/2,h,type,hinge:'r'})}else out.push({x,y,w,h,type,hinge:m.off+w/2>(wallLen||1e9)/2?'r':'l'})};
  if(m.cat==='bajo'||m.cat==='isla'){const y0=e.plinth,y1=e.top-e.ct,H=y1-y0;
   switch(m.kind){
-   case 'cajonera':case 'isla':{const parts=m.kind==='isla'?Math.max(1,Math.round(W/600)):1;const pw=W/parts;for(let k=0;k<parts;k++){let y=y1;[.25,.33,.42].forEach(f=>{const h=H*f;out.push({x:k*pw,y:y-h,w:pw,h,type:'drawer'});y-=h})}break}
-   case 'placa':{out.push({x:0,y:y1-H*.42,w:W,h:H*.42,type:'drawer'},{x:0,y:y0,w:W,h:H*.58,type:'drawer'});break}
+   case 'cajonera':case 'isla':{const parts=m.kind==='isla'?Math.max(1,Math.round(W/600)):1;const pw=W/parts;for(let k=0;k<parts;k++){let y=y1;(mt?[.25,.25,.5]:[.25,.33,.42]).forEach(f=>{const h=H*f;out.push({x:k*pw,y:y-h,w:pw,h,type:'drawer'});y-=h})}break}
+   case 'placa':{const t=mt?.5:.42;out.push({x:0,y:y1-H*t,w:W,h:H*t,type:'drawer'},{x:0,y:y0,w:W,h:H*(1-t),type:'drawer'});break}
    case 'lavavajillas':out.push({x:0,y:y0,w:W,h:H,type:'panel'});break;
-   case 'horno_bajo':out.push({x:0,y:y1-595,w:W,h:595,type:'glass'},{x:0,y:y0,w:W,h:H-595,type:'drawer'});break;
-   case 'esquina':{const right=wallLen&&m.off+m.w>wallLen-50;const bw=W-500;if(right){out.push({x:0,y:y0,w:500,h:H,type:'door',hinge:'l'},{x:500,y:y0,w:bw,h:H,type:'blind'})}else{out.push({x:0,y:y0,w:bw,h:H,type:'blind'},{x:bw,y:y0,w:500,h:H,type:'door',hinge:'r'})}break}
+   case 'horno_bajo':{const oh=mt?600:595;out.push({x:0,y:y1-oh,w:W,h:oh,type:'glass'},{x:0,y:y0,w:W,h:H-oh,type:'drawer'});break}
+   case 'esquina':{const right=wallLen&&m.off+m.w>wallLen-50;const dw=mt?(W===880?380:600):500;const bw=W-dw;if(right){out.push({x:0,y:y0,w:dw,h:H,type:'door',hinge:'l'},{x:dw,y:y0,w:bw,h:H,type:'blind'})}else{out.push({x:0,y:y0,w:bw,h:H,type:'blind'},{x:bw,y:y0,w:dw,h:H,type:'door',hinge:'r'})}break}
    case 'botellero':out.push({x:0,y:y0,w:W,h:H,type:'rack'});break;
    case 'relleno':out.push({x:0,y:y0,w:W,h:H,type:'filler'});break;
    default:dbl(0,y0,W,H)}}
  else if(m.cat==='alto'){const y0=b.z0,y1=b.z1,H=y1-y0;
-  switch(m.kind){case 'campana':out.push({x:0,y:y0+110,w:W,h:H-110,type:'door',hinge:'t'},{x:0,y:y0,w:W,h:110,type:'hood'});break;
+  switch(m.kind){case 'campana':{const hb=mt?Math.max(200,H-Math.floor((H-150)/200)*200):110;out.push({x:0,y:y0+hb,w:W,h:H-hb,type:'door',hinge:'t'},{x:0,y:y0,w:W,h:hb,type:'hood'});break}
    case 'alto_abatible':out.push({x:0,y:y0,w:W,h:H,type:'door',hinge:'t'});break;
    case 'alto_relleno':out.push({x:0,y:y0,w:W,h:H,type:'filler'});break;
    default:dbl(0,y0,W,H)}}
  else{const y0=e.plinth,y1=b.z1,H=y1-y0;
-  switch(m.kind){case 'frigorifico':{const lo=Math.min(780,H*.38);dbl(0,y0,W,lo);dbl(0,y0+lo,W,H-lo);break}
-   case 'horno_col':{const ov=Math.min(850,y0+H*.35);out.push({x:0,y:y0,w:W,h:(ov-y0)/2,type:'drawer'},{x:0,y:y0+(ov-y0)/2,w:W,h:(ov-y0)/2,type:'drawer'},{x:0,y:ov,w:W,h:595,type:'glass'},{x:0,y:ov+595,w:W,h:380,type:'micro'});const top=ov+975;if(y1-top>100)dbl(0,top,W,y1-top);break}
-   default:{const lo=H*.56;dbl(0,y0,W,lo);dbl(0,y0+lo,W,H-lo)}}}
+  switch(m.kind){case 'frigorifico':{const lo=mt?800:Math.min(780,H*.38);dbl(0,y0,W,lo);dbl(0,y0+lo,W,H-lo);break}
+   case 'horno_col':{if(mt){out.push({x:0,y:y0,w:W,h:400,type:'drawer'},{x:0,y:y0+400,w:W,h:400,type:'drawer'},{x:0,y:y0+800,w:W,h:600,type:'glass'},{x:0,y:y0+1400,w:W,h:400,type:'micro'});if(H-1800>100)dbl(0,y0+1800,W,H-1800);break}const ov=Math.min(850,y0+H*.35);out.push({x:0,y:y0,w:W,h:(ov-y0)/2,type:'drawer'},{x:0,y:y0+(ov-y0)/2,w:W,h:(ov-y0)/2,type:'drawer'},{x:0,y:ov,w:W,h:595,type:'glass'},{x:0,y:ov+595,w:W,h:380,type:'micro'});const top=ov+975;if(y1-top>100)dbl(0,top,W,y1-top);break}
+   default:{const lo=mt?H-800:H*.56;dbl(0,y0,W,lo);dbl(0,y0+lo,W,H-lo)}}}
  out.forEach(f=>{if(!f.hinge)f.hinge='l'});return out}
 
 /* ---------------- Render alzado (SVG) ---------------- */
@@ -665,7 +734,7 @@ function elevSVG(P,i,o={}){const G=geo(P),w=G.ws[i];if(!w)return{inner:'',vb:{x:
    if(P.finish.design==='ranurado'&&['door','panel'].includes(f.type)){for(let xx=fx+60;xx<fx+fw-30;xx+=60)g+=lnE(xx,fy+10,xx,fy+fh-10,`${frS} opacity=".5"`)}
    if(f.type==='door'&&!o.noSwing){const hl=f.hinge==='l';const ax=hl?fx:fx+fw,bx=hl?fx+fw:fx;if(f.hinge==='t')g+=`<polyline points="${X(fx)},${Y(fy)} ${X(fx+fw/2)},${Y(fy+fh)} ${X(fx+fw)},${Y(fy)}" fill="none" ${frS} stroke-dasharray="${fs*.2} ${fs*.14}" opacity=".55"/>`;else g+=`<polyline points="${X(bx)},${Y(fy+fh)} ${X(ax)},${Y(fy+fh/2)} ${X(bx)},${Y(fy)}" fill="none" ${frS} stroke-dasharray="${fs*.2} ${fs*.14}" opacity=".55"/>`}
    // tiradores
-   const ht=P.finish.handle.type;if(['door','drawer','panel'].includes(f.type)&&ht!=='push'&&ht!=='gola'){const up=m.cat==='alto';const hz=f.type==='drawer'?fy+fh-55:(up?fy+70:fy+fh-70);const hx=f.type==='drawer'||f.hinge==='t'?fx+fw/2:(f.hinge==='l'?fx+fw-45:fx+45);
+   const ht=P.finish.handle.type==='integrado'?'unero':P.finish.handle.type;if(['door','drawer','panel'].includes(f.type)&&ht!=='push'&&ht!=='gola'){const up=m.cat==='alto';const hz=f.type==='drawer'?fy+fh-55:(up?fy+70:fy+fh-70);const hx=f.type==='drawer'||f.hinge==='t'?fx+fw/2:(f.hinge==='l'?fx+fw-45:fx+45);
     if(ht==='barra'){if(f.type==='drawer'||f.hinge==='t')g+=lnE(hx-Math.min(96,fw*.3),hz,hx+Math.min(96,fw*.3),hz,`stroke="${hcol}" stroke-width="${R(fs*.16)}" stroke-linecap="round"`);else g+=lnE(hx,up?hz:hz-160,hx,up?hz+160:hz,`stroke="${hcol}" stroke-width="${R(fs*.16)}" stroke-linecap="round"`)}
     else if(ht==='pomo')g+=`<circle cx="${X(hx)}" cy="${Y(hz)}" r="${R(fs*.22)}" fill="${hcol}"/>`;
     else if(ht==='perfil'){const z=up?fy+6:fy+fh-6;g+=lnE(fx+4,z,fx+fw-4,z,`stroke="${hcol}" stroke-width="${R(fs*.13)}"`)}
@@ -938,7 +1007,7 @@ function vPlan(mode){const M=$('#main');M.className='full';const P=S.P;
  if(dwActive()&&mode==='geo'){M.innerHTML=`<div class="stage"><div class="bar" style="display:block;padding:10px 12px">${dwBanner()}</div><div class="cv" style="padding:14px">${dwSVG(S.dw,0)}<div class="hint" style="right:12px">Este es el dibujo que estás haciendo. Al cerrarlo se guardará como un plano nuevo; el que tenías abierto no cambia.</div></div><div class="drawer" style="display:flex;gap:8px"><button class="btn w" data-act="dwResume">✎ Seguir dibujando</button><button class="btn pri w" data-act="dwCloseNow">Cerrar y crear plano</button></div></div>`;return}
  const lay=S.layers;const bar=mode==='geo'?`
   <button class="chip" data-act="plans">📂 Mis planos</button><button class="chip" data-act="newPlan" style="border-color:var(--ac);color:var(--ac2)">+ Plano nuevo</button><button class="chip" data-act="draw" style="border-color:var(--ac);color:var(--ac2)">✎ Dibujar paredes</button><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instalaciones</button><button class="chip ${lay.mods?'on':''}" data-act="layer" data-l="mods">Mobiliario</button><button class="chip ${lay.grid?'on':''}" data-act="layer" data-l="grid">Cuadrícula</button><span class="muted" style="font-size:12px;margin-left:4px;white-space:nowrap">Ajuste</span><div class="seg" style="flex:none">${[1,10,50,100].map(v=>`<button class="${S.snap===v?'on':''}" data-act="snap" data-v="${v}">${v}</button>`).join('')}</div>`
- :`<button class="chip" data-act="auto" data-t="lineal">Lineal</button><button class="chip" data-act="auto" data-t="L">En L</button><button class="chip" data-act="auto" data-t="U">En U</button><button class="chip" data-act="auto" data-t="isla">Con isla</button><span style="width:1px;height:22px;background:var(--ln);flex:none"></span><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.tri?'on':''}" data-act="layer" data-l="tri">Triángulo</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instal.</button>`;
+ :`<button class="chip" data-act="sys" style="border-color:var(--ac);color:var(--ac2)">${isMetod(P)?'IKEA METOD':'Sistema'}</button>${isMetod(P)?'<button class="chip" data-act="ikeaList">🧾 Lista</button>':''}<button class="chip" data-act="auto" data-t="lineal">Lineal</button><button class="chip" data-act="auto" data-t="L">En L</button><button class="chip" data-act="auto" data-t="U">En U</button><button class="chip" data-act="auto" data-t="isla">Con isla</button><span style="width:1px;height:22px;background:var(--ln);flex:none"></span><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.tri?'on':''}" data-act="layer" data-l="tri">Triángulo</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instal.</button>`;
  M.innerHTML=`<div class="stage"><div class="bar">${mode==='mods'?`<span class="muted" style="font-size:12px;white-space:nowrap">${ic('magic','i" style="width:16px;height:16px;vertical-align:-3px')} Auto</span>`:''}${bar}</div>
  <div class="cv" id="cv"><svg class="plan" id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg>
   <div class="fab" style="top:12px"><button data-act="fit" aria-label="Encuadrar">${ic('fit')}</button>${mode==='mods'?`<button data-act="catalog" aria-label="Añadir módulo" style="background:var(--ac);color:#1A1206;border-color:var(--ac)">${ic('plus')}</button>`:`<button data-act="addAny" aria-label="Añadir elemento">${ic('plus')}</button>`}</div>
@@ -1010,9 +1079,9 @@ function itemSheet(c,id){S.sheetRef=id;const fn=()=>{const P=S.P;const coll=c===
  const k=c==='op'?'openings':c==='ob'?'obstacles':'inst',p=`${k}.#${id}.`;
  openSheet(`${itemTitle(c,o)} · pared ${LET(o.wall)}`,itemForm(c,o,p,'main')+'<div class="sp14"></div><div id="shChecks"></div>',`<button class="btn dan" data-act="delItem" data-c="${c}" data-id="${id}">Eliminar</button><button class="btn" data-act="dupItem" data-c="${c}" data-id="${id}">Duplicar</button><button class="btn pri w" data-act="closeSheet">Listo</button>`,fn);sheetLive()};fn()}
 function modSheet(id){S.sheetRef=id;const fn=()=>{const P=S.P,m=P.mods.find(x=>x.id===id);if(!m)return closeSheet();const K=KINDS[m.kind],p=`mods.#${id}.`,e=E(P),b0=mbox(m,P),C=codes(P);
- const kinds=Object.entries(KINDS).filter(([,v])=>v.cat===m.cat).map(([k,v])=>[k,v.name]);let b=`<div class="row" style="gap:12px;margin-bottom:12px"><div style="width:84px;height:84px;background:var(--p2);border:1px solid var(--ln);border-radius:12px;padding:6px">${moduleIcon(m.kind)}</div><div><div class="mono" style="color:var(--ac);font-weight:700">${C[m.id]}</div><b>${K.name}</b><div class="muted mono" style="font-size:12px">${nf(m.w)} × ${nf(b0.z1-b0.z0)} × ${nf(b0.d)} mm</div></div></div><div class="fgrid">`;
+ const kinds=Object.entries(KINDS).filter(([,v])=>v.cat===m.cat).map(([k,v])=>[k,v.name]);let b=`<div class="row" style="gap:12px;margin-bottom:12px"><div style="width:84px;height:84px;background:var(--p2);border:1px solid var(--ln);border-radius:12px;padding:6px">${moduleIcon(m.kind)}</div><div><div class="mono" style="color:var(--ac);font-weight:700">${C[m.id]}</div><b>${K.name}</b><div class="muted mono" style="font-size:12px">${nf(m.w)} × ${nf(b0.z1-b0.z0)} × ${nf(b0.d)} mm</div>${isMetod(P)?`<div style="font-size:11.5px;color:var(--ac2);margin-top:3px">${esc(metodName(m,P))}</div>`:''}</div></div><div class="fgrid">`;
  b+=F_sel('Tipo de módulo',p+'kind',m.kind,kinds,{rr:true,cls:'full'});
- b+=`<div class="fld full"><label>Anchura</label><div class="chips">${K.widths.map(w=>`<button class="chip sm ${m.w===w?'on':''}" data-act="setW" data-id="${id}" data-v="${w}">${w}</button>`).join('')}</div></div>`;
+ b+=`<div class="fld full"><label>Anchura</label><div class="chips">${widthsOf(m.kind,P).map(w=>`<button class="chip sm ${m.w===w?'on':''}" data-act="setW" data-id="${id}" data-v="${w}">${w}</button>`).join('')}</div></div>`;
  b+=F_mm('Anchura libre',p+'w',m.w);
  if(m.cat==='isla'){b+=F_mm('Fondo',p+'d',m.d||900)+F_mm('Posición X',p+'x',m.x,{step:true})+F_mm('Posición Y',p+'y',m.y,{step:true})+F_num('Giro (°)',p+'rot',m.rot,{step:'1'})}
  else{b+=F_sel('Pared',p+'wall',m.wall,wallOpts(),{num:true})+F_mm('Distancia desde extremo izq.',p+'off',m.off,{cls:'full',step:true})+`<div class="full row" style="gap:6px"><button class="btn sm w" data-act="snapMod" data-id="${id}" data-d="-1">⇤ Pegar a la izquierda</button><button class="btn sm w" data-act="snapMod" data-id="${id}" data-d="1">Pegar a la derecha ⇥</button></div>`;
@@ -1028,7 +1097,17 @@ function moreSheet(){openSheet('Más herramientas',`<div class="grid2">
  <button class="tile" style="min-height:118px" data-act="ergo"><span class="ic">${ic('ergo')}</span><span class="t" style="font-size:15px">Ergonomía</span><span class="s">Alturas y pasillos</span></button>
  <button class="tile" style="min-height:118px" data-act="projects"><span class="ic">${ic('carp')}</span><span class="t" style="font-size:15px">Mis planos</span><span class="s">Abrir, renombrar, duplicar</span></button>
  <button class="tile" style="min-height:118px" data-act="io"><span class="ic">${ic('doc')}</span><span class="t" style="font-size:15px">Importar / exportar</span><span class="s">Archivo de proyecto</span></button></div><div class="sp14"></div><button class="btn w" data-act="about">Cocinas Pro <b class="mono" style="color:var(--ac2)">${VERSION}</b> · ↻ Actualizar</button>`)}
-function ergoSheet(){const fn=()=>{const e=S.P.ergo;const sug=Math.round((e.stature*.63-120)/10)*10;openSheet('Ergonomía y criterios',`<div class="fgrid">
+function sysSheet(){const fn=()=>{const P=S.P,s=P.sys||{type:'generico'},mt=isMetod(P);const e=E(P);
+ openSheet('Sistema de mobiliario',`<div class="seg" style="margin-bottom:14px"><button class="${!mt?'on':''}" data-act="setSys" data-v="generico">Genérico</button><button class="${mt?'on':''}" data-act="setSys" data-v="metod">IKEA METOD</button></div>
+ ${mt?`<div class="fld"><label>Altura de la cocina (parte superior de altos y columnas)</label><div class="chips">${[[2000,'208 · altos de 60'],[2200,'228 · altos de 80'],[2400,'248 · altos de 100']].map(([v,l])=>`<button class="chip ${(+s.col||2200)===v?'on':''}" data-act="sysVal" data-k="col" data-v="${v}">${l}</button>`).join('')}</div><small>Medido con patas de 8 cm. Columnas METOD de 200, 220 o 240 cm.</small></div>
+ <div class="fld" style="margin-top:12px"><label>Patas</label><div class="chips">${[[80,'METOD 8 cm'],[110,'SEKTION 11 cm']].map(([v,l])=>`<button class="chip ${(+s.legs||80)===v?'on':''}" data-act="sysVal" data-k="legs" data-v="${v}">${l}</button>`).join('')}</div></div>
+ <div class="fld" style="margin-top:12px"><label>Grosor de encimera</label><div class="chips">${[12,20,28,38].map(v=>`<button class="chip ${(+s.ct||28)===v?'on':''}" data-act="sysVal" data-k="ct" data-v="${v}">${v} mm</button>`).join('')}</div></div>
+ <div class="card" style="margin-top:14px;background:var(--p2);font-size:13px"><b>Resultado</b><div class="mono muted" style="font-size:12px;margin-top:6px;line-height:1.7">Zócalo ${e.plinth} · bajos 800 · encimera a ${nf(e.top)} mm<br>Altos de ${e.wallH} mm, de ${nf(e.wallZ)} a ${nf(e.wallZ+e.wallH)} mm<br>Columnas hasta ${nf(e.colH)} mm · fondo de altos 370</div></div>
+ <div class="banner wa" style="margin-top:12px;font-size:12.5px"><span>Los anchos pasan a ser los comerciales (20, 30, 40, 60 y 80 cm). Pulsa una distribución automática (Lineal, En L…) para recolocar los muebles con estas medidas.</span></div>`:`<p class="sub">Medidas libres: eliges altura de encimera, altos y anchos de 30 a 120 cm en Ergonomía.</p>`}`,`<button class="btn pri w" data-act="closeSheet">Listo</button>`,fn)};fn()}
+function listSheet(){const fn=()=>{openSheet('Lista de compra IKEA',`<p class="sub" style="margin-top:0">Calculada del plano abierto. Escribe la referencia y el precio de cada artículo: se recuerdan para todos tus planos. Comprueba siempre en ikea.es, porque precios y referencias cambian.</p><div style="overflow-x:auto">${listHTML(S.P,true)}</div>`,`<button class="btn w" data-act="copyIkea">Copiar lista</button><button class="btn pri w" data-act="closeSheet">Listo</button>`,fn);
+ $$('#sheet .ikr').forEach(i=>i.addEventListener('change',()=>{const sc=$('.sh-b').scrollTop;ikeaRefSave(i.dataset.k,i.dataset.f,i.dataset.f==='price'?i.value.replace(',','.').trim():i.value.trim());fn();$('.sh-b').scrollTop=sc}))};fn()}
+
+function ergoSheet(){const fn=()=>{const e=S.P.ergo;const sug=Math.round((e.stature*.63-120)/10)*10;openSheet('Ergonomía y criterios',`<button class="btn w" data-act="sys" style="margin-bottom:12px;border-color:var(--ac)">Sistema de mobiliario: <b style="color:var(--ac2)">${isMetod(S.P)?'IKEA METOD':'Genérico'}</b></button><div class="fgrid">
  ${F_mm('Altura de encimera','ergo.counter',e.counter,{hint:'ref. ~900'})}${F_mm('Zócalo','ergo.plinth',e.plinth)}${F_mm('Grosor encimera','ergo.ctThick',e.ctThick)}${F_mm('Encimera → altos','ergo.gap',e.gap,{hint:'ref. 500–600'})}${F_mm('Altura muebles altos','ergo.wallH',e.wallH)}${F_mm('Altura columnas','ergo.colH',e.colH)}${F_mm('Pasillo mínimo','ergo.aisle',e.aisle,{hint:'ref. 1.000–1.200'})}
  ${F_sel('Tipo de placa','hob',S.P.hob,[['induccion','Inducción / vitro'],['gas','Gas']])}</div>
  <div class="sp14"></div><div class="card" style="background:var(--p2)"><div class="fgrid">${F_mm('Estatura del usuario principal','ergo.stature',e.stature,{cls:'full'})}</div><div class="sp8"></div><div class="row sp"><span class="sub">Sugerencia (codo − 120 mm): <b class="mono" style="color:var(--tx)">${nf(sug)} mm</b></span><button class="btn sm" data-act="applySug" data-v="${sug}">Aplicar</button></div></div>`,'',fn)};fn()}
@@ -1090,6 +1169,14 @@ const ACT={
   const b=bounds(geo(P));P.room.approxW=Math.round(b.w);P.room.approxL=Math.round(b.h);setProject(P);S.vb={};S.sel=null;S.focusWall=0;S.curWall=0;S.elevWall=0;V.dirty=true;S.dw=null;saveDraw();closeSheet();nav('plano');
   toast(`Plano «${P.name}» guardado · ${r.walls.length} paredes y ${r.items.length} elementos`+(r.rev?' · sentido ajustado':''))},
  update:()=>actualizarApp(false),about:()=>aboutSheet(),
+ setSys:a=>{const P=S.P;if(a.dataset.v==='metod'){P.sys=Object.assign({type:'metod',col:2200,legs:80,ct:28},isMetod(P)?P.sys:{});applySys(P)}else P.sys={type:'generico'};V.dirty=true;commit();render(true);sysSheet()},
+ sysVal:a=>{const P=S.P;P.sys[a.dataset.k]=+a.dataset.v;applySys(P);V.dirty=true;commit();S.live&&S.live();updBadge();sysSheet()},
+ sys:()=>sysSheet(),ikeaList:()=>listSheet(),
+ copyIkea:async()=>{try{await navigator.clipboard.writeText(listCSVikea(S.P));toast('Lista copiada (CSV)')}catch(e){toast('No se pudo copiar')}},
+ ikeaSerie:a=>{S.ikeaS=a.dataset.s;render(true)},
+ ikeaVar:a=>{const ser=IKEA_SERIES.find(x=>x.s===a.dataset.s),v=ser.v[+a.dataset.i];const F=S.P.finish;F.front={color:v[1],finish:v[2],texture:v[3],name:`${ser.s} ${v[0]}`};F.design=ser.d;if(ser.h==='integrado')F.handle={type:'integrado',color:v[1]};else if(F.handle.type==='integrado')F.handle={type:'barra',color:'#2B2B2B'};F.series={sys:'METOD',s:ser.s,v:v[0]};F.collection='IKEA METOD · '+ser.s;
+  if(!isMetod(S.P)){S.P.sys={type:'metod',col:2200,legs:80,ct:28};applySys(S.P);toast(`${ser.s} ${v[0]} aplicado · sistema IKEA METOD activado`)}else toast(`${ser.s} ${v[0]} aplicado`);commit();V.dirty=true;render(true)},
+
  setDoor:a=>{const o=S.P.openings.find(x=>x.id===a.dataset.id)||dwFind(a.dataset.id)?.it;if(!o)return;o.hinge=a.dataset.h;o.swing=a.dataset.s;V.dirty=true;commit();liveRefresh();S.sheetFn&&S.sheetFn();toast(o.kind==='corredera'?`Recoge a la ${o.hinge==='izq'?'izquierda':'derecha'}`:`Puerta a ${doorMano(o)}`)},
  focusWall:a=>{if(a.closest('button:not([data-act="focusWall"])'))return;S.focusWall=+a.dataset.i;S.live&&S.live()},
  geom:a=>{const g=a.dataset.g;confirmBox(`¿Redibujar las paredes con forma <b>${(SHAPES.find(x=>x[0]===g)||[,g])[1]}</b> a partir de ${nf(S.P.room.approxW)} × ${nf(S.P.room.approxL)} mm? Se sustituirán las longitudes actuales; revisa después huecos y muebles.`,()=>{const P=S.P;P.room.geometry=g;P.room.walls=preset(g,P.room.approxW,P.room.approxL);const n=P.room.walls.length;[P.openings,P.obstacles,P.inst,P.mods].forEach(arr=>arr.forEach(x=>{if(x.wall!=null&&x.wall>=n)x.wall=n-1}));V.dirty=true;commit();render(true)},'Generar')},
@@ -1112,7 +1199,7 @@ const ACT={
  catalog:()=>catalogSheet(S.catTab||'bajo'),catTab:a=>catalogSheet(a.dataset.c),
  curWall:a=>{S.curWall=+a.dataset.i;S.catFn&&S.catFn()},curWall2:a=>{S.curWall=+a.dataset.i;$$('[data-act="curWall2"]').forEach(b=>b.classList.toggle('on',b===a))},
  addAny:()=>addSheet(),
- addMod:a=>{const k=a.dataset.k,K=KINDS[k];const w=K.widths.includes(600)?600:K.widths[0];let m;
+ addMod:a=>{const k=a.dataset.k,K=KINDS[k];const ws=widthsOf(k,S.P);const w=ws.includes(600)?600:ws[0];let m;
   if(K.cat==='isla'){const G=geo(S.P);m={id:uid(),cat:'isla',kind:'isla',x:Math.round(G.c[0]),y:Math.round(G.c[1]),rot:0,w:1800,d:900,wall:null,off:0}}
   else m={id:uid(),cat:K.cat,kind:k,wall:S.curWall,off:firstFree(S.P,S.curWall,K.cat,w),w,h:null,d:null,z:null};
   S.P.mods.push(m);S.sel=m.id;commit();V.dirty=true;closeSheet();S.sel=m.id;S.live&&S.live();modSheet(m.id)},
@@ -1136,7 +1223,7 @@ const ACT={
  io:()=>ioSheet(),copyIO:async()=>{try{await navigator.clipboard.writeText($('#ioTxt').value);toast('Proyecto copiado')}catch(e){$('#ioTxt').select();toast('Selecciona y copia el texto')}},
  importIO:()=>{try{const p=JSON.parse($('#ioTxt').value);if(!p.room||!p.room.walls)throw 0;p.id=p.id||uid();setProject(p);closeSheet();render();toast('Proyecto importado')}catch(e){toast('El texto no es un proyecto válido')}},
  elevW:a=>{S.elevWall=+a.dataset.i;render(true)},elevColor:()=>{S.elevColor=!S.elevColor;render(true)},
- coll:a=>{const c=COLLS[+a.dataset.i];const keep=S.P.finish;S.P.finish=JSON.parse(JSON.stringify(c.f));S.P.finish.collection=c.n;commit();V.dirty=true;render(true);toast('Colección «'+c.n+'» aplicada')},
+ coll:a=>{const c=COLLS[+a.dataset.i];const keep=S.P.finish;S.P.finish=JSON.parse(JSON.stringify(c.f));S.P.finish.collection=c.n;delete S.P.finish.series;commit();V.dirty=true;render(true);toast('Colección «'+c.n+'» aplicada')},
  setF:a=>{const[o,k]=ref(a.dataset.p);o[k]=a.dataset.v;if(a.dataset.p.startsWith('finish.front.color')){o.name=nearestName(a.dataset.v)}S.P.finish.collection='';commit();V.dirty=true;render(true)},
  v3mode:a=>{S.v3.mode=a.dataset.m;set3DView();render3DUI()},v3corner:()=>{S.v3.corner++;set3DView()},v3wall:()=>{S.v3.wall=(S.v3.wall+1)%geo(S.P).ws.length;set3DView()},
  v3panel:()=>{S.v3.panel=!S.v3.panel;$('#v3p').classList.toggle('on',S.v3.panel)},
@@ -1268,7 +1355,7 @@ function mk3D(m,mats,P,G){const T=V.T,e=E(P),g=new T.Group(),W=MM(m.w),b=mbox(m,
   if(m.kind==='placa'){const pw=Math.min(W-.04,MM(m.w)>=800?.78:.59);box(pw,.006,.52,ox+(W-pw)/2,top,.04,mats.glassB,false)}}
  if(m.cat==='alto'){box(W,MM(b.z1-b.z0),bodyD,0,MM(b.z0),0,mats.carcass);if(S.v3.led){const strip=new T.Mesh(new T.BoxGeometry(W*.9,.006,.02),mats.led);strip.position.set(W/2,MM(b.z0)-.004,bodyD*.85);g.add(strip)}}
  if(m.cat==='col'){const pl=MM(e.plinth);box(W,pl,bodyD-.06,0,0,0,mats.plinth);box(W,MM(b.z1)-pl,bodyD,0,pl,0,mats.carcass)}
- const fz=isl?D/2:bodyD;const ht=F.handle.type;
+ const fz=isl?D/2:bodyD;const ht=F.handle.type==='integrado'?'unero':F.handle.type;
  frontLayout(m,P,wallLen).forEach(f=>{const x=MM(f.x)+ox+gap,y=MM(f.y)+gap,w=MM(f.w)-2*gap,h=MM(f.h)-2*gap;let mat=mats.front;if(f.type==='glass'||f.type==='micro')mat=mats.glassB;if(f.type==='hood')mat=mats.steel;
   const fr=box(w,h,ft,x,y,isl?fz:fz,mat);
   if(F.design==='enmarcado'&&['door','drawer','panel'].includes(f.type)&&w>.2&&h>.12){const k=Math.min(.07,w*.14);box(w-2*k,h-2*k,.006,x+k,y+k,fz+ft-.004,mats.front);[[x,y,w,k],[x,y+h-k,w,k],[x,y,k,h],[x+w-k,y,k,h]].forEach(([a,c,dw,dh])=>box(dw,dh,.008,a,c,fz+ft,mats.front,false))}
@@ -1323,9 +1410,13 @@ const hex2lab=h=>rgb2lab(hex2rgb(h));
 function vAcabados(){const F=S.P.finish;const finS=(p,v)=>['mate','satinado','brillo'].map(x=>`<button class="chip sm ${v===x?'on':''}" data-act="setF" data-p="${p}" data-v="${x}">${x}</button>`).join('');
  const texS=(p,v,opts)=>opts.map(x=>`<button class="chip sm ${v===x?'on':''}" data-act="setF" data-p="${p}" data-v="${x}">${x}</button>`).join('');
  $('#main').innerHTML=`<div class="wrap"><h1>Colecciones y acabados</h1><div class="sub">Materiales PBR aplicados al alzado y al 3D. Las colecciones son combinaciones de referencia; ajusta cada material a la colección comercial elegida.</div>
+ <h2>Frentes IKEA METOD · ${IKEA_SERIES.length} series</h2>
+ <div class="card"><div class="colls" style="gap:8px">${IKEA_SERIES.map(x=>`<button class="coll ${(S.ikeaS||F.series?.s||IKEA_SERIES[0].s)===x.s?'on':''}" style="width:118px" data-act="ikeaSerie" data-s="${x.s}"><div class="pv" style="height:54px;display:flex">${x.v.map(v=>`<div style="flex:1;background:${v[1]}${v[3]==='madera'?';background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.09) 0 2px,transparent 2px 7px)':''}"></div>`).join('')}</div><div class="nm" style="font-size:12px">${x.s}<span>${x.d}${x.h==='integrado'?' · tirador integrado':''}</span></div></button>`).join('')}</div>
+ ${(()=>{const x=IKEA_SERIES.find(y=>y.s===(S.ikeaS||F.series?.s||IKEA_SERIES[0].s))||IKEA_SERIES[0];return`<div class="sp14"></div><b>${x.s}</b> <span class="sub">· frente ${x.d}${x.h==='integrado'?', tirador integrado':', tirador aparte'}</span><div class="grid2" style="margin-top:10px">${x.v.map((v,i)=>`<button class="btn" style="justify-content:flex-start;${F.series?.s===x.s&&F.series?.v===v[0]?'border-color:var(--ac);background:var(--acbg)':''}" data-act="ikeaVar" data-s="${x.s}" data-i="${i}"><span style="width:26px;height:26px;border-radius:7px;background:${v[1]};box-shadow:0 0 0 1px rgba(255,255,255,.15) inset;flex:none"></span><span style="text-align:left;font-size:13px">${v[0]}<span class="muted" style="display:block;font-size:11px">${v[2]} · ${v[3]}</span></span></button>`).join('')}</div>`})()}
+ <small class="muted" style="display:block;margin-top:10px">Colores aproximados para el render. La disponibilidad de series y colores cambia: compruébalo en ikea.es antes de pedir.</small></div>
  <h2>Colecciones</h2><div class="colls">${COLLS.map((c,i)=>`<button class="coll ${F.collection===c.n?'on':''}" data-act="coll" data-i="${i}"><div class="pv"><div style="background:${c.f.front.color}${c.f.front.texture==='madera'?';background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.08) 0 2px,transparent 2px 7px)':''}"></div><div style="display:grid;grid-template-rows:1fr 1fr"><div style="background:${c.f.counter.color}"></div><div style="background:${c.f.floor.color}"></div></div></div><div class="nm">${c.n}<span>${c.d}</span></div></button>`).join('')}</div>
  <h2>Ficha de materiales</h2><div class="card">
-  <div class="ficha"><div class="sq" style="background:${F.front.color}"></div><div><b>Frentes · ${esc(F.front.name||nearestName(F.front.color))}</b><span>Acabado ${F.front.finish} · ${F.front.texture} · diseño ${F.design}</span></div></div>
+  <div class="ficha"><div class="sq" style="background:${F.front.color}"></div><div><b>Frentes · ${esc(F.series?F.series.s+' '+F.series.v:(F.front.name||nearestName(F.front.color)))}</b><span>Acabado ${F.front.finish} · ${F.front.texture} · diseño ${F.design}</span></div></div>
   <div class="ficha"><div class="sq" style="background:${F.counter.color}"></div><div><b>Encimera · ${esc(F.counter.name||nearestName(F.counter.color))}</b><span>${F.counter.texture} · ${F.counter.finish}</span></div></div>
   <div class="ficha"><div class="sq" style="background:${F.handle.color}"></div><div><b>Tirador · ${HANDLES[F.handle.type]}</b><span>${nearestName(F.handle.color)}</span></div></div>
   <div class="ficha"><div class="sq" style="background:${F.wall.color}"></div><div><b>Paredes · ${nearestName(F.wall.color)}</b><span>Pintura plástica mate</span></div></div>
@@ -1394,6 +1485,7 @@ function memoria(P){const G=geo(P),e=E(P),F=P.finish,ch=validate(P);const cnt=c=
  <p><b>3. Instalaciones.</b> Se han registrado ${P.inst.length} puntos de instalación existentes (${[...new Set(P.inst.map(i=>INST[i.type].n.toLowerCase()))].join(', ')||'—'}). ${desp.length?`Se prevé como intervención adicional el desplazamiento de: ${desp.map(i=>`${INST[i.type].n.toLowerCase()} (pared ${LET(i.wall)}, de ${nf(i.off)} a ${nf(i.off2)} mm)`).join('; ')}.`:'La distribución propuesta mantiene las instalaciones en su posición actual salvo indicación en las comprobaciones.'}</p>
  <p><b>4. Distribución propuesta.</b> Cocina ${dir} con ${cnt('bajo')} módulos bajos, ${cnt('alto')} altos, ${cnt('col')} columnas${cnt('isla')?' y '+cnt('isla')+' isla':''}, que suman ${nf(ml/1000,2)} m lineales de encimera. Todos los módulos son paramétricos y están referenciados a la pared y a su extremo izquierdo.</p>
  <p><b>5. Criterios ergonómicos.</b> Altura de encimera ${nf(e.top)} mm sobre zócalo de ${nf(e.plinth)} mm; separación entre encimera y muebles altos de ${nf(e.gap)} mm; muebles altos de ${nf(e.wallH)} mm; columnas de ${nf(e.colH)} mm; pasillo mínimo de referencia ${nf(e.aisle)} mm. Estos valores se ajustarán a la estatura del usuario y a las especificaciones del fabricante.</p>
+ ${isMetod(P)?`<p><b>Sistema de mobiliario.</b> Muebles modulares IKEA METOD con frentes ${esc(P.finish.series?P.finish.series.s+' '+P.finish.series.v:'por definir')}: bajos de 800 mm sobre patas de ${E(P).plinth/10} cm, altos de ${E(P).wallH} mm y 370 mm de fondo, y columnas hasta ${nf(E(P).colH)} mm. Las holguras con las paredes se resuelven con regletas de relleno cortadas a medida.</p>`:''}
  <p><b>6. Acabados.</b> Frentes ${esc(F.front.name||nearestName(F.front.color)).toLowerCase()} en acabado ${F.front.finish} (${F.front.texture}, diseño ${F.design}); encimera ${esc((F.counter.name||nearestName(F.counter.color)).toLowerCase())} ${F.counter.texture}; tirador ${HANDLES[F.handle.type].toLowerCase()} en ${nearestName(F.handle.color).toLowerCase()}; paredes ${nearestName(F.wall.color).toLowerCase()}; suelo ${F.floor.texture} ${nearestName(F.floor.color).toLowerCase()}.${F.collection?' Referencia: '+esc(F.collection)+'.':''}</p>
  <p><b>7. Comprobaciones pendientes.</b> ${pend.length?pend.map(c=>esc(c.msg)).join(' '):'El motor de comprobación no detecta incidencias.'}</p>
  <p><b>8. Nota.</b> Todas las medidas deberán verificarse in situ antes del pedido de mobiliario. Los planos se acotan en milímetros.</p>`}
@@ -1406,6 +1498,7 @@ function vExpediente(){const P=S.P,G=geo(P),F=P.finish;const pl=planSVG(P,{mode:
  ${G.ws.map((w,i)=>{const r=elevSVG(P,i,{theme:'paper',color:true});return`<div class="doc"><h4>Plano 0${i+2}</h4><h3>Alzado pared ${LET(i)}</h3>${wrapSVG(r)}</div>`}).join('')}
  <div class="doc"><h4>Perspectiva</h4><h3>Vista 3D</h3>${P.shot?`<img class="cv3" src="${P.shot}" alt="Perspectiva 3D">`:`<p>Abre la vista 3D y pulsa el botón de cámara para incorporar la perspectiva al expediente.</p><button class="btn sm noprint" data-go="vista3d">Ir a 3D</button>`}</div>
  <div class="doc"><h4>Mobiliario</h4><h3>Listado de módulos</h3><table><thead><tr><th>Ref.</th><th>Tipo</th><th>Pared</th><th>Pos.</th><th>An × Al × Fo</th></tr></thead><tbody>${listRows(P).map(r=>`<tr><td class="m"><b>${r.ref}</b></td><td>${r.tipo}</td><td>${r.pared}</td><td class="m">${r.pos}</td><td class="m">${r.dim}</td></tr>`).join('')}</tbody></table></div>
+ ${isMetod(P)?`<div class="doc"><h4>IKEA METOD</h4><h3>Lista de compra</h3><p style="font-size:12px;color:#777;margin-top:-6px">Altura de cocina ${nf(E(P).colH)} mm · patas ${E(P).plinth/10} cm · encimera ${E(P).ct} mm · frentes ${esc(P.finish.series?P.finish.series.s+' '+P.finish.series.v:'sin elegir')}. Referencias y precios orientativos: verificar en ikea.es.</p><div style="overflow-x:auto">${listHTML(P,false)}</div><button class="btn sm noprint" style="margin-top:10px" data-act="ikeaList">Editar referencias y precios</button> <button class="btn sm noprint" style="margin-top:10px" data-act="copyIkea">Copiar lista</button></div>`:''}
  <div class="doc"><h4>Acabados</h4><h3>Ficha de materiales</h3><table><tbody>
   <tr><td><span class="sw" style="background:${F.front.color}"></span>Frentes</td><td>${esc(F.front.name||nearestName(F.front.color))} · ${F.front.finish} · ${F.front.texture} · diseño ${F.design}</td><td class="m">${F.front.color}</td></tr>
   <tr><td><span class="sw" style="background:${F.counter.color}"></span>Encimera</td><td>${esc(F.counter.name||nearestName(F.counter.color))} · ${F.counter.texture}</td><td class="m">${F.counter.color}</td></tr>
@@ -1436,6 +1529,7 @@ async function comprobarNueva(){if(enClaude||!navigator.onLine||location.protoco
 function aboutSheet(){openSheet('Cocinas Pro',`<div class="row" style="gap:12px"><span class="logo"><span class="mark" style="width:40px;height:40px;border-radius:11px"></span></span><div><b style="font-size:17px">Versión ${VERSION}</b><div class="sub">${enClaude?'Abierta dentro de Claude':'App instalada · GitHub Pages'}</div></div></div>
  <div class="sp14"></div><div class="card" style="background:var(--p2);font-size:13.5px;color:var(--mu)">El botón <b style="color:var(--tx)">↻</b> descarga la última versión desde GitHub y recarga la app. <b style="color:var(--tx)">Tus proyectos no se borran</b>: se guardan aparte en este dispositivo. Cuando hay una versión nueva, el botón se pone en ámbar con un punto rojo.</div>
  <div class="sp14"></div><h2 style="margin-top:0">Novedades</h2><div class="card" style="font-size:13px">
+ <p style="margin:0 0 6px"><b class="mono">v2.0</b> · Modo IKEA METOD: todas las series de frentes, medidas comerciales, alturas 208/228/248 y lista de compra.</p>
  <p style="margin:0 0 6px"><b class="mono">v1.9</b> · Menú «Mis planos»: cada plano nuevo se guarda aparte y se abre, renombra, duplica o elimina.</p>
  <p style="margin:0 0 6px"><b class="mono">v1.8</b> · Dibujo: arrastrar puertas, ventanas y tomas por su pared; aviso si algo no cabe.</p>
  <p style="margin:0 0 6px"><b class="mono">v1.7</b> · Dibujo: pared activa resaltada con su inicio (0) y fin; cambiar medida y «Rehacer desde aquí».</p>
