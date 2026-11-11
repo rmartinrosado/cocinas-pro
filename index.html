@@ -115,6 +115,18 @@ h3{margin:0;font-size:16px;font-weight:700}
 .it i{width:8px;height:8px;border-radius:2px;display:inline-block}
 .add{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
 .add button{flex:none;padding:6px 10px;border-radius:9px;border:1px dashed var(--ln2);color:var(--mu);font-size:12.5px;font-weight:600}
+.shapes{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.shape{background:var(--p2);border:1px solid var(--ln);border-radius:14px;padding:8px 9px 10px;text-align:left;display:flex;flex-direction:column;gap:3px}
+.shape.on{border-color:var(--ac);background:var(--acbg)}
+.shape .th{height:86px;margin-bottom:4px}
+.shape b{font-size:13.5px}.shape span{font-size:11px;color:var(--mu);line-height:1.25}
+.stick{position:sticky;top:0;z-index:3;padding-top:10px;margin:8px 0 4px;background:linear-gradient(var(--bg) 88%,transparent)}
+.help{background:var(--p1);border:1px solid var(--ln);border-radius:var(--r);padding:12px 14px;margin:10px 0 0;font-size:13.5px}
+.help summary{font-weight:700;cursor:pointer;color:var(--ac2)}
+.help ol{margin:10px 0 2px;padding-left:20px;color:var(--mu)}.help li{margin:5px 0}.help b{color:var(--tx)}
+.wthumb{width:66px;height:56px;flex:none;background:var(--p2);border-radius:10px;border:1px solid var(--ln);padding:3px}
+.wall.on{border-color:rgba(233,162,59,.55);box-shadow:0 0 0 1px rgba(233,162,59,.25)}
+.wall .hd{cursor:pointer}
 .banner{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;font-size:13.5px;border:1px solid}
 .banner.ok{background:rgba(92,194,138,.08);border-color:rgba(92,194,138,.35)}
 .banner.wa{background:rgba(233,194,59,.08);border-color:rgba(233,194,59,.35)}
@@ -487,7 +499,7 @@ function dimS(a,b,nv,d,label,col,fs,cls=''){const A=[a[0]+nv[0]*d,a[1]+nv[1]*d],
  s+=LN(A,B,sw)+LN([A[0]-tk[0],A[1]-tk[1]],[A[0]+tk[0],A[1]+tk[1]],`stroke="${col}" stroke-width="${R(fs*.11)}"`)+LN([B[0]-tk[0],B[1]-tk[1]],[B[0]+tk[0],B[1]+tk[1]],`stroke="${col}" stroke-width="${R(fs*.11)}"`);
  if(L>fs*1.6)s+=`<text x="${R(m[0])}" y="${R(-m[1])}" transform="rotate(${R(ang)} ${R(m[0])} ${R(-m[1])})" text-anchor="middle" dominant-baseline="middle" font-size="${R(fs*(L>fs*4?.82:.62))}" fill="${col}" font-family="JetBrains Mono,monospace" font-weight="500">${label}</text>`;
  return s+'</g>'}
-function planSVG(P,o={}){const G=geo(P),T=TH[o.theme||'dark'],t=G.t,L=o.layers||S.layers,mode=o.mode||'geo',sel=o.sel;const n=G.ws.length;const b=bounds(G);const fs=o.fs||clamp(Math.max(b.w,b.h)/36,70,150);const C=codes(P);
+function planSVG(P,o={}){const G=geo(P),T=TH[o.theme||'dark'],t=G.t,L=o.layers||S.layers,mode=o.mode||'geo',sel=o.sel;const n=G.ws.length;const b=bounds(G);const fs=o.fs||(o.fsDiv?Math.max(b.w,b.h)/o.fsDiv:clamp(Math.max(b.w,b.h)/36,70,150));const C=codes(P);
  let s=`<defs><pattern id="h_${o.theme||'d'}" width="70" height="70" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="70" height="70" fill="${T.hatchBg}"/><line x1="0" y1="0" x2="0" y2="70" stroke="${T.hatch}" stroke-width="12"/></pattern></defs>`;
  const hid=`url(#h_${o.theme||'d'})`;
  if(L.grid&&o.theme!=='paper'){const g0=Math.floor((b.x0-1500)/500)*500,g1=b.x1+1500,h0=Math.floor((b.y0-1500)/500)*500,h1=b.y1+1500;let gs='';
@@ -535,6 +547,14 @@ function planSVG(P,o={}){const G=geo(P),T=TH[o.theme||'dark'],t=G.t,L=o.layers||
  if(L.tri&&mode==='mods'){const f=k=>P.mods.find(m=>m.kind===k);const a=f('fregadero'),bb=f('placa'),c=f('frigorifico');if(a&&bb&&c){const cp=m=>m.cat==='isla'?[m.x,m.y]:W2(G.ws[m.wall],m.off+m.w/2,mbox(m,P).d*.55);const ps=[cp(a),cp(bb),cp(c)];
   s+=PL(ps,`fill="${T.dim}" fill-opacity=".06" stroke="${T.dim}" stroke-width="${fs*.06}" stroke-dasharray="${fs*.25} ${fs*.2}" pointer-events="none"`);const tot=dist(ps[0],ps[1])+dist(ps[1],ps[2])+dist(ps[2],ps[0]);const cc=[(ps[0][0]+ps[1][0]+ps[2][0])/3,(ps[0][1]+ps[1][1]+ps[2][1])/3];
   s+=`<text x="${R(cc[0])}" y="${R(-cc[1])}" text-anchor="middle" font-size="${R(fs*.55)}" fill="${T.dim}" font-family="JetBrains Mono,monospace" pointer-events="none">Δ ${nf(tot/1000,2)} m</text>`}}
+ // pared resaltada y sentido de medición
+ if(o.focusWall!=null&&G.ws[o.focusWall]){const i=o.focusWall,w=G.ws[i];const q=[w.a,w.b,G.oc[(i+1)%n],G.oc[i]];s+=PL(q,`fill="${T.dim}" stroke="${T.dim}" stroke-width="${R(fs*.12)}" pointer-events="none"`);
+  const depth=Math.max(fs*4,...G.pts.map(p=>dot(sub(p,w.a),w.n)));const ob=W2(w,w.len/2,clamp(depth*.55,fs*3.2,depth-fs*1.2));
+  s+=PL([ob,W2(w,w.len*.06,0),W2(w,w.len*.94,0)],`fill="${T.dim}" fill-opacity=".10" stroke="${T.dim}" stroke-opacity=".55" stroke-width="${R(fs*.04)}" stroke-dasharray="${R(fs*.25)} ${R(fs*.18)}" pointer-events="none"`);
+  s+=`<circle cx="${R(ob[0])}" cy="${R(-ob[1])}" r="${R(fs*.5)}" fill="${T.dim}" pointer-events="none"/><text x="${R(ob[0])}" y="${R(-ob[1]+fs*1.25)}" text-anchor="middle" font-size="${R(fs*.62)}" fill="${T.dim}" font-weight="700" font-family="Inter Tight,sans-serif" pointer-events="none">tú</text>`;
+  if(!o.noLR){const pl=W2(w,Math.min(w.len*.18,fs*2.2),fs*1.2),pr=W2(w,w.len-Math.min(w.len*.18,fs*2.2),fs*1.2);s+=`<text x="${R(pl[0])}" y="${R(-pl[1])}" text-anchor="middle" dominant-baseline="middle" font-size="${R(fs*.55)}" font-weight="800" fill="${T.dim}" font-family="JetBrains Mono,monospace" pointer-events="none">IZQ·0</text><text x="${R(pr[0])}" y="${R(-pr[1])}" text-anchor="middle" dominant-baseline="middle" font-size="${R(fs*.55)}" font-weight="800" fill="${T.dim}" font-family="JetBrains Mono,monospace" pointer-events="none">DCHA</text>`}}
+ if(o.arrows){G.ws.forEach((w,i)=>{if(w.len<fs*2)return;const a0=W2(w,w.len*.1,fs*.75),a1=W2(w,w.len*.34,fs*.75);const h1=[a1[0]-w.u[0]*fs*.5+w.n[0]*fs*.3,a1[1]-w.u[1]*fs*.5+w.n[1]*fs*.3],h2=[a1[0]-w.u[0]*fs*.5-w.n[0]*fs*.3,a1[1]-w.u[1]*fs*.5-w.n[1]*fs*.3];const c=o.focusWall===i?T.txt:T.dim;
+  s+=LN(a0,a1,`stroke="${c}" stroke-width="${R(fs*.09)}" stroke-linecap="round" pointer-events="none"`)+PL([a1,h1,h2],`fill="${c}" pointer-events="none"`)})}
  // cotas
  if(L.cotas){G.ws.forEach((w,i)=>{const nv=[-w.n[0],-w.n[1]];s+=dimS(w.a,w.b,nv,t+fs*2.5,nf(w.len),T.dim,fs);
    const ops=P.openings.filter(op=>op.wall===i).sort((a,b)=>a.off-b.off);if(ops.length){const xs=[0];ops.forEach(op=>{xs.push(+op.off,+op.off+ +op.w)});xs.push(w.len);
@@ -542,10 +562,10 @@ function planSVG(P,o={}){const G=geo(P),T=TH[o.theme||'dark'],t=G.t,L=o.layers||
   if(mode==='mods'){G.ws.forEach((w,i)=>{const ms=P.mods.filter(m=>m.wall===i&&m.cat!=='alto').sort((a,b)=>a.off-b.off);if(!ms.length)return;const d=Math.max(...ms.map(m=>mbox(m,P).d));const xs=[...new Set(ms.flatMap(m=>[m.off,m.off+m.w]))].sort((a,b)=>a-b);
    for(let k=0;k<xs.length-1;k++)if(xs[k+1]-xs[k]>=1)s+=dimS(W2(w,xs[k],d),W2(w,xs[k+1],d),w.n,fs*.9,nf(xs[k+1]-xs[k]),T.alto,fs*.7)})}}
  // etiquetas de pared
- G.ws.forEach((w,i)=>{const p=W2(w,w.len/2,mode==='mods'?-t-fs*4.6:fs*2.1);if(mode==='mods'&&!L.cotas)return;const hh=w.h!==+P.room.height;
+ G.ws.forEach((w,i)=>{const p=W2(w,w.len/2,o.lblOut?-t-fs*1.05:mode==='mods'?-t-fs*4.6:fs*2.1);if(mode==='mods'&&!L.cotas)return;const hh=w.h!==+P.room.height;
   s+=`<g data-k="wall" data-i="${i}"><circle cx="${R(p[0])}" cy="${R(-p[1])}" r="${R(fs*.85)}" fill="${T.lbl}" stroke="${T.dim}" stroke-width="${fs*.07}"/><text x="${R(p[0])}" y="${R(-p[1])}" text-anchor="middle" dominant-baseline="central" font-size="${R(fs*.85)}" font-weight="800" fill="${T.dim}" font-family="JetBrains Mono,monospace">${LET(i)}</text>${hh?`<text x="${R(p[0])}" y="${R(-p[1]+fs*1.6)}" text-anchor="middle" font-size="${R(fs*.5)}" fill="${T.mu}" font-family="JetBrains Mono,monospace">h ${nf(w.h)}</text>`:''}</g>`});
- if(mode==='geo'||o.theme==='paper'){s+=`<text x="${R(G.c[0])}" y="${R(-G.c[1])}" text-anchor="middle" font-size="${R(fs*.8)}" fill="${T.txt}" font-weight="700" font-family="Inter Tight,sans-serif" pointer-events="none">${esc(P.room.name)}</text><text x="${R(G.c[0])}" y="${R(-G.c[1]+fs*1.1)}" text-anchor="middle" font-size="${R(fs*.6)}" fill="${T.mu}" font-family="JetBrains Mono,monospace" pointer-events="none">${nf(G.area/1e6,2)} m² · h ${nf(P.room.height)}</text>`}
- const m=fs*5.5;return{inner:s,vb:{x:b.x0-m,y:-b.y1-m,w:b.w+2*m,h:b.h+2*m},fs}}
+ if((mode==='geo'||o.theme==='paper')&&!o.noName){s+=`<text x="${R(G.c[0])}" y="${R(-G.c[1])}" text-anchor="middle" font-size="${R(fs*.8)}" fill="${T.txt}" font-weight="700" font-family="Inter Tight,sans-serif" pointer-events="none">${esc(P.room.name)}</text><text x="${R(G.c[0])}" y="${R(-G.c[1]+fs*1.1)}" text-anchor="middle" font-size="${R(fs*.6)}" fill="${T.mu}" font-family="JetBrains Mono,monospace" pointer-events="none">${nf(G.area/1e6,2)} m² · h ${nf(P.room.height)}</text>`}
+ const m=fs*(o.margin??5.5);return{inner:s,vb:{x:b.x0-m,y:-b.y1-m,w:b.w+2*m,h:b.h+2*m},fs}}
 const wrapSVG=(r,extra='')=>`<svg viewBox="${R(r.vb.x)} ${R(r.vb.y)} ${R(r.vb.w)} ${R(r.vb.h)}" xmlns="http://www.w3.org/2000/svg" ${extra}>${r.inner}</svg>`;
 
 /* ---------------- Frentes paramétricos ---------------- */
@@ -696,7 +716,7 @@ function vInicio(){const P=S.P,G=geo(P),ch=validate(P),er=ch.filter(c=>c.sev==='
  const st=[['Medición',G.err<=2],['Plano',G.err<=2&&P.room.walls.length>=3],['Instalaciones',P.inst.length>0],['Distribución',P.mods.length>0],['Comprobaciones',P.mods.length>0&&!er],['Acabados',!!P.finish.collection||!!P.finish.front.name],['Expediente',!!P.shot]];
  const F=P.finish;
  $('#main').innerHTML=`<div class="wrap">
- <div class="hero"><div class="row sp"><span class="pill">Proyecto · ${new Date(P.created).toLocaleDateString('es-ES')}</span><button class="chip sm" data-act="projects">${ic('carp','i" style="width:15px;height:15px;vertical-align:-3px')} Proyectos</button></div>
+ <div class="hero"><div class="row sp"><span class="pill">Proyecto · ${new Date(P.created).toLocaleDateString('es-ES')}</span><div class="row" style="gap:6px"><button class="chip sm" data-act="newPlan">+ Plano nuevo</button><button class="chip sm" data-act="projects">${ic('carp','i" style="width:15px;height:15px;vertical-align:-3px')} Proyectos</button></div></div>
   <h1 style="margin-top:12px">${esc(P.name)}</h1><div class="sub">${esc(P.room.name)} · ${esc(P.room.type)}${P.address?' · '+esc(P.address):''}</div>
   <div class="kpis"><div class="kpi"><b>${nf(G.area/1e6,2)}</b><span>m² planta</span></div><div class="kpi"><b>${nf(G.per/1000,2)}</b><span>m perímetro</span></div><div class="kpi"><b>${nf(ml/1000,2)}</b><span>m encimera</span></div><div class="kpi"><b style="color:${er?'var(--er)':wa?'var(--wa)':'var(--ok)'}">${er||wa||'✓'}</b><span>${er?'errores':wa?'avisos':'sin incidencias'}</span></div></div>
   <div class="pipe">${st.map(([l,ok],k)=>`<span class="${ok?'ok':(k&&st[k-1][1]?'wip':'')}">${l}</span>`).join('')}</div></div>
@@ -718,44 +738,76 @@ const tile=(go,i,t,s,extra)=>`<button class="tile" data-go="${go}"><span class="
 const chkList=l=>l.length?l.map(c=>`<button class="chk" data-act="gochk" data-ref="${c.ref||''}"><span class="d ${c.sev==='ok'?'okd':c.sev}"></span><span>${esc(c.msg)}</span></button>`).join(''):`<div class="chk"><span class="d okd"></span><span>Todo correcto.</span></div>`;
 
 /* ---------------- Vista: Medir ---------------- */
-function vMedir(){const P=S.P,G=geo(P),r=P.room;
- const geoms=[['rectangular','Rectangular'],['cuadrada','Cuadrada'],['L','En L'],['U','En U'],['irregular','Irregular']];
+const SHAPES=[['rectangular','Rectangular','4 paredes · A B C D'],['cuadrada','Cuadrada','4 paredes iguales'],['L','En L','6 paredes · una esquina hacia dentro'],['U','En U','8 paredes · con entrante'],['irregular','Irregular','ángulos y nº de paredes libres']];
+function fakeP(walls,h=2600){return{room:{name:'',type:'',height:h,thickness:120,walls},openings:[],obstacles:[],inst:[],mods:[],ergo:S.P.ergo,finish:S.P.finish}}
+function regular(n,W,L){const len=Math.round(2*(W+L)/n/10)*10,ang=180*(n-2)/n;return Array.from({length:n},()=>({len,ang}))}
+function roomThumb(P,o={}){const r=planSVG(P,Object.assign({mode:'geo',layers:{cotas:0,inst:0,mods:0,grid:0},noName:true,fsDiv:6,margin:2.3,noLR:true,lblOut:true},o));return wrapSVG(r,'width="100%" height="100%" preserveAspectRatio="xMidYMid meet"')}
+function vMedir(){const P=S.P,G=geo(P),r=P.room;if(S.focusWall==null||S.focusWall>=G.ws.length)S.focusWall=0;
  $('#main').innerHTML=`<div class="wrap">
- <div class="row sp"><div><h1>Mediciones</h1><div class="sub">Todas las cotas en milímetros. El sistema trabaja internamente en mm.</div></div></div>
+ <div class="row sp" style="align-items:flex-start;gap:10px"><div><h1>Mediciones</h1><div class="sub">Todas las cotas en milímetros.</div></div><button class="btn pri sm" data-act="newPlan" style="flex:none;margin-top:6px">${ic('plus')} Plano nuevo</button></div>
  <h2>Datos generales</h2>
  <div class="card"><div class="fgrid">
   ${F_txt('Nombre de la estancia','room.name',r.name)}
   ${F_sel('Tipo de estancia','room.type',r.type,['Cocina independiente','Cocina abierta al salón','Cocina-office','Cocina con lavadero','Otro'].map(x=>[x,x]))}
   ${F_mm('Altura suelo–techo','room.height',r.height)}
   ${F_mm('Espesor de muros (dibujo)','room.thickness',r.thickness)}
-  ${F_mm('Anchura aproximada','room.approxW',r.approxW)}
-  ${F_mm('Longitud aproximada','room.approxL',r.approxL)}
- </div><div class="sp14"></div><div class="fld"><label>Tipo de geometría · ${G.ws.length} paredes</label><div class="chips">${geoms.map(([k,l])=>`<button class="chip ${r.geometry===k?'on':''}" data-act="geom" data-g="${k}">${l}</button>`).join('')}</div><small>Al elegir una geometría se generan las paredes a partir de las medidas aproximadas.</small></div></div>
- <h2>Contorno</h2>
- <div class="card" style="padding:8px"><div id="miniPlan" style="height:230px"></div><div id="closure" style="padding:4px 6px 6px"></div></div>
+ </div></div>
+ <h2>Forma de la estancia · ${G.ws.length} paredes</h2>
+ <div class="card"><div class="shapes">${SHAPES.map(([k,l,sb])=>`<button class="shape ${r.geometry===k?'on':''}" data-act="geom" data-g="${k}"><div class="th">${roomThumb(fakeP(preset(k,3600,2800)),{arrows:true})}</div><b>${l}</b><span>${sb}</span></button>`).join('')}</div>
+  <div class="sp14"></div><div class="fgrid">${F_mm('Anchura aproximada · pared A','room.approxW',r.approxW)}${F_mm('Fondo aproximado','room.approxL',r.approxL)}</div>
+  <small class="muted" style="display:block;margin-top:8px">Cambiar la forma redibuja las paredes con estas medidas aproximadas y <b>conserva</b> puertas, instalaciones y muebles. Para partir de un plano vacío usa <b>Plano nuevo</b>.</small></div>
+ <div class="stick"><div class="card" style="padding:6px 8px 8px"><div class="row sp" style="padding:2px 4px 0"><b style="font-size:12.5px">Pared <span id="fwl" style="color:var(--ac)">${LET(S.focusWall)}</span> resaltada</b><span class="muted" style="font-size:11.5px">toca una ficha para cambiar</span></div><div id="miniPlan" style="height:160px"></div><div id="closure"></div></div></div>
+ <details class="help" ${S.helpOpen===false?'':'open'} id="helpW"><summary>¿Cómo se nombran y se miden las paredes?</summary>
+  <ol>
+   <li>Ponte <b>dentro de la cocina mirando a la pared A</b>. Te conviene que sea la más larga o la de la ventana.</li>
+   <li>Las demás siguen <b>girando hacia tu derecha</b>: B queda a tu derecha, C suele ser la de tu espalda y D la de tu izquierda (en una L o una U siguen E, F, G…).</li>
+   <li>Cada pared se mide <b>de esquina a esquina</b>, por dentro.</li>
+   <li>Las puertas, ventanas, tomas y muebles se sitúan midiendo <b>desde la esquina izquierda</b> de su pared, mirándola de frente (punto <b>IZQ·0</b> del dibujo).</li>
+   <li>La <b>flecha</b> de cada pared marca ese sentido, de izquierda a derecha. La pared que editas se pinta en ámbar.</li>
+  </ol></details>
  <h2>Paredes · ficha individual</h2>
- <div class="sub" style="margin:-4px 2px 10px">Recorrido en sentido horario. Distancias de huecos e instalaciones desde el <b>extremo izquierdo</b> de cada pared, mirándola desde dentro de la cocina.</div>
  <div id="walls">${G.ws.map((w,i)=>wallCard(i)).join('')}</div>
  <div class="row" style="gap:8px"><button class="btn" data-act="addWall">${ic('plus')} Añadir pared</button>${r.walls.length>3?`<button class="btn dan ghost" data-act="delWall">Quitar última</button>`:''}</div>
  </div>`;
- const draw=()=>{const g=geo(S.P);const pr=planSVG(S.P,{mode:'geo',layers:{cotas:1,inst:1,mods:0,grid:0},sel:null});$('#miniPlan').innerHTML=wrapSVG(pr,'style="width:100%;height:100%"');
-  $('#closure').innerHTML=g.err<=2&&Math.abs(g.angErr)<=.5?`<div class="banner ok">✓ Contorno cerrado. Superficie <b>${nf(g.area/1e6,2)} m²</b> · perímetro <b>${nf(g.per)} mm</b></div>`:`<div class="banner ${g.err>20?'er':'wa'}"><div style="flex:1">Error de cierre <b>${nf(g.err)} mm</b>${Math.abs(g.angErr)>.5?` · suma de ángulos desviada <b>${nf(g.angErr,1)}°</b>`:''}. Lo normal es que una estancia real no sea perfecta: revisa medidas o compensa.</div><button class="btn sm" data-act="closeLast">Cerrar con la última pared</button></div>`;
-  G.ws.forEach((w,i)=>{const el=$(`#wc${i} .wsum`);if(el)el.textContent=`${nf(w.len)} mm · ∠ ${nf(w.ang,1)}°`})};
+ $('#helpW').addEventListener('toggle',e=>{S.helpOpen=e.target.open});
+ const draw=()=>{const g=geo(S.P);if(S.focusWall>=g.ws.length)S.focusWall=0;const pr=planSVG(S.P,{mode:'geo',layers:{cotas:1,inst:1,mods:0,grid:0},sel:null,focusWall:S.focusWall,arrows:true,noName:true,margin:4});$('#miniPlan').innerHTML=wrapSVG(pr,'style="width:100%;height:100%"');$('#fwl').textContent=LET(S.focusWall);
+  $$('.wall').forEach(el=>el.classList.toggle('on',+el.dataset.i===S.focusWall));
+  $('#closure').innerHTML=g.err<=2&&Math.abs(g.angErr)<=.5?`<div class="banner ok" style="padding:7px 10px;font-size:12.5px"><span>✓ Contorno cerrado · <b>${nf(g.area/1e6,2)} m²</b> · perímetro <b>${nf(g.per)} mm</b></span></div>`:`<div class="banner ${g.err>20?'er':'wa'}" style="padding:7px 10px;font-size:12.5px;align-items:center"><div style="flex:1">No cierra por <b>${nf(g.err)} mm</b>${Math.abs(g.angErr)>.5?` · ángulos <b>${nf(g.angErr,1)}°</b>`:''}</div><button class="btn sm" data-act="closeLast">Cerrar con la última</button></div>`;
+  G.ws.forEach((w,i)=>{const el=$(`#wc${i} .wsum`);if(el)el.textContent=`${nf(geo(S.P).ws[i]?.len||0)} mm · ∠ ${nf(geo(S.P).ws[i]?.ang||0,1)}°`})};
  S.live=draw;draw()}
-function wallCard(i){const P=S.P,w=P.room.walls[i];const its=[...P.openings.filter(o=>o.wall===i).map(o=>({c:'op',o,t:OPN[o.type],col:o.type==='ventana'?'var(--bl)':'#C9CDD3'})),...P.obstacles.filter(o=>o.wall===i).map(o=>({c:'ob',o,t:OBN[o.type],col:'#8A919B'})),...P.inst.filter(o=>o.wall===i).map(o=>({c:'in',o,t:INST[o.type].n,col:INST[o.type].c}))];
- const angs=[[90,'90° · esquina'],[270,'270° · esquina saliente'],[180,'180° · continuación']];const custom=![90,270,180].includes(+w.ang);
- return`<div class="wall" id="wc${i}"><div class="hd"><span class="wl">${LET(i)}</span><div style="flex:1"><h3>Pared ${LET(i)}</h3><span class="mono muted wsum" style="font-size:12px"></span></div><button class="chip sm" data-act="elevOf" data-i="${i}">Alzado</button></div>
- <div class="fgrid">${F_mm('Longitud','room.walls.'+i+'.len',w.len,{cls:'full'})}
- ${F_sel('Ángulo interior con la siguiente','room.walls.'+i+'.ang',custom?'custom':w.ang,[...angs,['custom','Otro ángulo…']],{num:true,rr:true})}
- ${custom?F_num('Ángulo (°)','room.walls.'+i+'.ang',w.ang,{step:'0.1'}):F_mm('Altura propia','room.walls.'+i+'.h',w.h,{optional:true,hint:'vacío = altura general'})}
+function wallCard(i){const P=S.P,w=P.room.walls[i],n=P.room.walls.length;const L=LET((i-1+n)%n),Rr=LET((i+1)%n);const its=[...P.openings.filter(o=>o.wall===i).map(o=>({c:'op',o,t:OPN[o.type],col:o.type==='ventana'?'var(--bl)':'#C9CDD3'})),...P.obstacles.filter(o=>o.wall===i).map(o=>({c:'ob',o,t:OBN[o.type],col:'#8A919B'})),...P.inst.filter(o=>o.wall===i).map(o=>({c:'in',o,t:INST[o.type].n,col:INST[o.type].c}))];
+ const angs=[[90,'90° · normal'],[270,'270° · hacia dentro'],[180,'180° · recta']];const custom=![90,270,180].includes(+w.ang);
+ return`<div class="wall" id="wc${i}" data-i="${i}"><div class="hd" data-act="focusWall" data-i="${i}"><span class="wl">${LET(i)}</span><div style="flex:1;min-width:0"><h3>Pared ${LET(i)}</h3><div class="sub" style="font-size:12px;line-height:1.3">Izquierda: pared <b>${L}</b> · Derecha: pared <b>${Rr}</b></div><span class="mono muted wsum" style="font-size:11.5px"></span></div><div class="wthumb">${roomThumb(P,{focusWall:i})}</div></div>
+ <div class="fgrid">${F_mm(`Longitud · de la esquina con ${L} a la esquina con ${Rr}`,'room.walls.'+i+'.len',w.len,{cls:'full'})}
+ ${F_sel(`Esquina con la pared ${Rr}`,'room.walls.'+i+'.ang',custom?'custom':w.ang,[...angs,['custom','Otro ángulo…']],{num:true,rr:true})}
+ ${custom?F_num('Ángulo interior (°)','room.walls.'+i+'.ang',w.ang,{step:'0.1'}):F_mm('Altura propia','room.walls.'+i+'.h',w.h,{optional:true,hint:'vacío = altura general'})}
  ${custom?F_mm('Altura propia','room.walls.'+i+'.h',w.h,{optional:true,hint:'vacío = altura general',cls:'full'}):''}</div>
  ${its.length?`<div class="items">${its.map(x=>`<button class="it" data-act="edit" data-c="${x.c}" data-id="${x.o.id}"><i style="background:${x.col}"></i>${x.t} <span class="mono muted">${nf(x.o.off)}</span></button>`).join('')}</div>`:''}
  <div class="add"><button data-act="addOp" data-t="puerta" data-w="${i}">+ Puerta</button><button data-act="addOp" data-t="ventana" data-w="${i}">+ Ventana</button><button data-act="addOb" data-w="${i}">+ Obstáculo</button><button data-act="addIn" data-w="${i}">+ Instalación</button></div></div>`}
+document.addEventListener('focusin',e=>{const b=e.target.dataset?.bind;const m=b&&b.match(/^room\.walls\.(\d+)\./);if(m&&S.view==='medir'&&S.focusWall!==+m[1]){S.focusWall=+m[1];S.live&&S.live()}});
+
+/* ---------------- Plano nuevo (asistente) ---------------- */
+function npWalls(d){return d.g==='irregular'&&d.n!==4?regular(d.n,d.W,d.L):preset(d.g,d.W,d.L)}
+function newPlanSheet(step=1){const d=S.np;
+ if(step===1){openSheet('Plano nuevo · 1 de 2 · Forma',`<p class="sub" style="margin-top:0">Elige la forma que más se parezca a la cocina vista desde arriba. Las letras indican cómo se llamará cada pared y la flecha el sentido en el que se mide (de izquierda a derecha, mirándola desde dentro).</p>
+  <div class="shapes">${SHAPES.map(([k,l,sb])=>`<button class="shape ${d.g===k?'on':''}" data-act="npShape" data-g="${k}"><div class="th">${roomThumb(fakeP(k==='irregular'?npWalls({...d,g:k}):preset(k,3600,2800)),{arrows:true})}</div><b>${l}</b><span>${sb}</span></button>`).join('')}</div>
+  ${d.g==='irregular'?`<div class="fld" style="margin-top:12px"><label>Número de paredes</label><div class="chips">${[3,4,5,6,7,8].map(k=>`<button class="chip sm ${d.n===k?'on':''}" data-act="npN" data-n="${k}">${k}</button>`).join('')}</div><small>Se dibuja un polígono regular; después ajustas cada longitud y cada ángulo.</small></div>`:''}`,
+  `<button class="btn w" data-act="closeSheet">Cancelar</button><button class="btn pri w" data-act="npStep" data-s="2">Siguiente</button>`);return}
+ const sq=d.g==='cuadrada',fw=d.g==='L'?5:1,irr=d.g==='irregular';
+ openSheet('Plano nuevo · 2 de 2 · Medidas aproximadas',`<div class="card" style="padding:6px;background:var(--p2)"><div id="npPrev" style="height:210px"></div></div><div class="sp14"></div><div class="fgrid">
+  <div class="fld ${sq?'full':''}"><label>${sq?'Lado':irr?'Anchura aproximada':'Anchura total · pared A'}</label><div class="mmwrap"><input id="npW2" class="mm" type="number" inputmode="numeric" value="${d.W}"><span class="u">mm</span></div></div>
+  ${sq?'':`<div class="fld"><label>${irr?'Fondo aproximado':'Fondo total · pared '+LET(fw)}</label><div class="mmwrap"><input id="npL2" class="mm" type="number" inputmode="numeric" value="${d.L}"><span class="u">mm</span></div></div>`}
+  <div class="fld full"><label>Altura suelo–techo</label><div class="mmwrap"><input id="npH2" class="mm" type="number" inputmode="numeric" value="${d.H}"><span class="u">mm</span></div></div></div>
+  <p class="sub">Solo sirven para dibujar el contorno. Después medirás cada pared con exactitud en su ficha.</p>
+  <div class="banner wa" style="font-size:12.5px">Se borrarán las paredes, puertas, ventanas, obstáculos, instalaciones y muebles del plano actual. Se conservan el nombre del proyecto, los acabados y la ergonomía. Puedes deshacerlo con ↶.</div>`,
+  `<button class="btn w" data-act="npStep" data-s="1">Atrás</button><button class="btn pri w" data-act="npCreate">Crear plano vacío</button>`);
+ const upd=()=>{d.W=+$('#npW2').value||d.W;if($('#npL2'))d.L=+$('#npL2').value||d.L;d.H=+$('#npH2').value||d.H;const r=planSVG(fakeP(npWalls(d),d.H),{mode:'geo',layers:{cotas:1,inst:0,mods:0,grid:0},noName:true,arrows:true,margin:4.2});$('#npPrev').innerHTML=wrapSVG(r,'width="100%" height="100%"')};
+ ['npW2','npL2','npH2'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=upd});upd()}
 
 /* ---------------- Vista: Plano / Muebles ---------------- */
 function vPlan(mode){const M=$('#main');M.className='full';const P=S.P;
  const lay=S.layers;const bar=mode==='geo'?`
-  <button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instalaciones</button><button class="chip ${lay.mods?'on':''}" data-act="layer" data-l="mods">Mobiliario</button><button class="chip ${lay.grid?'on':''}" data-act="layer" data-l="grid">Cuadrícula</button><span class="muted" style="font-size:12px;margin-left:4px;white-space:nowrap">Ajuste</span><div class="seg" style="flex:none">${[1,10,50,100].map(v=>`<button class="${S.snap===v?'on':''}" data-act="snap" data-v="${v}">${v}</button>`).join('')}</div>`
+  <button class="chip" data-act="newPlan" style="border-color:var(--ac);color:var(--ac2)">+ Plano nuevo</button><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instalaciones</button><button class="chip ${lay.mods?'on':''}" data-act="layer" data-l="mods">Mobiliario</button><button class="chip ${lay.grid?'on':''}" data-act="layer" data-l="grid">Cuadrícula</button><span class="muted" style="font-size:12px;margin-left:4px;white-space:nowrap">Ajuste</span><div class="seg" style="flex:none">${[1,10,50,100].map(v=>`<button class="${S.snap===v?'on':''}" data-act="snap" data-v="${v}">${v}</button>`).join('')}</div>`
  :`<button class="chip" data-act="auto" data-t="lineal">Lineal</button><button class="chip" data-act="auto" data-t="L">En L</button><button class="chip" data-act="auto" data-t="U">En U</button><button class="chip" data-act="auto" data-t="isla">Con isla</button><span style="width:1px;height:22px;background:var(--ln);flex:none"></span><button class="chip ${lay.cotas?'on':''}" data-act="layer" data-l="cotas">Cotas</button><button class="chip ${lay.tri?'on':''}" data-act="layer" data-l="tri">Triángulo</button><button class="chip ${lay.inst?'on':''}" data-act="layer" data-l="inst">Instal.</button>`;
  M.innerHTML=`<div class="stage"><div class="bar">${mode==='mods'?`<span class="muted" style="font-size:12px;white-space:nowrap">${ic('magic','i" style="width:16px;height:16px;vertical-align:-3px')} Auto</span>`:''}${bar}</div>
  <div class="cv" id="cv"><svg class="plan" id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -797,8 +849,8 @@ function tapItem(tg,mode){const k=tg.dataset.k;if(k==='wall'){S.sel='wall'+tg.da
 
 /* ---------------- Fichas (sheets) ---------------- */
 function wallSheet(i){S.sheetRef='closure';const fn=()=>{const P=S.P,w=P.room.walls[i];if(!w)return closeSheet();const custom=![90,270,180].includes(+w.ang);
- openSheet(`<span class="wl" style="display:inline-grid;width:28px;height:28px;margin-right:8px;font-size:13px">${LET(i)}</span>Pared ${LET(i)}`,`<div class="fgrid">${F_mm('Longitud interior','room.walls.'+i+'.len',w.len,{cls:'full',step:true})}
- ${F_sel('Ángulo interior con la siguiente','room.walls.'+i+'.ang',custom?'custom':w.ang,[[90,'90°'],[270,'270° saliente'],[180,'180°'],['custom','Otro…']],{rr:true,num:true})}
+ const nn=P.room.walls.length,Lw=LET((i-1+nn)%nn),Rw=LET((i+1)%nn);openSheet(`<span class="wl" style="display:inline-grid;width:28px;height:28px;margin-right:8px;font-size:13px">${LET(i)}</span>Pared ${LET(i)}`,`<div class="row" style="gap:12px;margin-bottom:12px"><div class="wthumb" style="width:96px;height:80px">${roomThumb(P,{focusWall:i})}</div><div class="sub" style="font-size:13px">Mirándola desde dentro, tiene a la <b>izquierda la pared ${Lw}</b> y a la <b>derecha la pared ${Rw}</b>. Mídela de esquina a esquina.</div></div><div class="fgrid">${F_mm('Longitud interior','room.walls.'+i+'.len',w.len,{cls:'full',step:true})}
+ ${F_sel('Esquina con la pared '+Rw,'room.walls.'+i+'.ang',custom?'custom':w.ang,[[90,'90° · normal'],[270,'270° · hacia dentro'],[180,'180° · recta'],['custom','Otro…']],{rr:true,num:true})}
  ${custom?F_num('Ángulo (°)','room.walls.'+i+'.ang',w.ang,{step:'0.1'}):F_mm('Altura propia','room.walls.'+i+'.h',w.h,{optional:true})}</div>
  <div class="sp14"></div><div class="banner wa" style="font-size:12.5px">Al cambiar la longitud, el plano se recalcula y el motor comprueba si puertas, ventanas y muebles siguen cabiendo.</div><div class="sp8"></div><div id="shChecks"></div>
  <div class="add" style="margin-top:12px"><button data-act="addOp" data-t="puerta" data-w="${i}">+ Puerta</button><button data-act="addOp" data-t="ventana" data-w="${i}">+ Ventana</button><button data-act="addOb" data-w="${i}">+ Obstáculo</button><button data-act="addIn" data-w="${i}">+ Instalación</button></div>`,
@@ -830,6 +882,7 @@ function catalogSheet(cat='bajo'){const P=S.P,G=geo(P);const fn=()=>{openSheet('
  <div class="cat">${Object.entries(KINDS).filter(([,v])=>v.cat===cat).map(([k,v])=>`<button data-act="addMod" data-k="${k}">${moduleIcon(k)}<b>${v.name}</b><span>${v.widths.join(' · ')}</span></button>`).join('')}</div>`)};S.catTab=cat;S.catFn=fn;fn()}
 function moreSheet(){openSheet('Más herramientas',`<div class="grid2">
  ${[['acabados','acab','Colecciones','Acabados y materiales'],['igualacion','ojo','Igualación','Foto de referencia'],['expediente','doc','Expediente','Planos y memoria']].map(([g,i,t,s])=>`<button class="tile" style="min-height:118px" data-go="${g}"><span class="ic">${ic(i)}</span><span class="t" style="font-size:15px">${t}</span><span class="s">${s}</span></button>`).join('')}
+ <button class="tile" style="min-height:118px" data-act="newPlan"><span class="ic">${ic('plano')}</span><span class="t" style="font-size:15px">Plano nuevo</span><span class="s">Vaciar y empezar de cero</span></button>
  <button class="tile" style="min-height:118px" data-act="ergo"><span class="ic">${ic('ergo')}</span><span class="t" style="font-size:15px">Ergonomía</span><span class="s">Alturas y pasillos</span></button>
  <button class="tile" style="min-height:118px" data-act="projects"><span class="ic">${ic('carp')}</span><span class="t" style="font-size:15px">Proyectos</span><span class="s">Abrir, nuevo, duplicar</span></button>
  <button class="tile" style="min-height:118px" data-act="io"><span class="ic">${ic('doc')}</span><span class="t" style="font-size:15px">Importar / exportar</span><span class="s">Archivo de proyecto</span></button></div>`)}
@@ -859,7 +912,11 @@ const ACT={
  home:()=>nav('inicio'),closeSheet:()=>closeSheet(),checks:()=>checksSheet(),
  undo:()=>{if(!S.undo.length)return toast('Nada que deshacer');S.last=S.undo.pop();S.P=JSON.parse(S.last);saveStore();V.dirty=true;render(true);toast('Cambio deshecho')},
  gochk:a=>{const r=a.dataset.ref;closeSheet();if(!r)return;if(r==='closure')return nav('medir');if(r==='ergo')return ergoSheet();const m=S.P.mods.find(x=>x.id===r);S.view=m?'muebles':'plano';S.sel=r;render();setTimeout(()=>{if(m)modSheet(r);else{const c=S.P.openings.find(x=>x.id===r)?'op':S.P.obstacles.find(x=>x.id===r)?'ob':'in';itemSheet(c,r)}},60)},
- geom:a=>{const g=a.dataset.g;confirmBox(`¿Generar las paredes como geometría <b>${a.textContent}</b> a partir de ${nf(S.P.room.approxW)} × ${nf(S.P.room.approxL)} mm? Se sustituirán las longitudes actuales; revisa después huecos y muebles.`,()=>{const P=S.P;P.room.geometry=g;P.room.walls=preset(g,P.room.approxW,P.room.approxL);const n=P.room.walls.length;[P.openings,P.obstacles,P.inst,P.mods].forEach(arr=>arr.forEach(x=>{if(x.wall!=null&&x.wall>=n)x.wall=n-1}));V.dirty=true;commit();render(true)},'Generar')},
+ newPlan:()=>{S.np={g:'rectangular',W:+S.P.room.approxW||3600,L:+S.P.room.approxL||2800,H:+S.P.room.height||2600,n:5};newPlanSheet(1)},
+ npShape:a=>{S.np.g=a.dataset.g;newPlanSheet(1)},npN:a=>{S.np.n=+a.dataset.n;newPlanSheet(1)},npStep:a=>newPlanSheet(+a.dataset.s),
+ npCreate:()=>{const d=S.np,P=S.P;P.room.geometry=d.g;P.room.approxW=d.W;P.room.approxL=d.L;P.room.height=d.H;P.room.walls=npWalls(d);P.openings=[];P.obstacles=[];P.inst=[];P.mods=[];P.shot=null;S.vb={};S.sel=null;S.focusWall=0;S.curWall=0;S.elevWall=0;V.dirty=true;commit();closeSheet();nav('medir');toast('Plano vacío creado · empieza midiendo la pared A');setTimeout(()=>{const el=$('[data-bind="room.walls.0.len"]');if(el){el.scrollIntoView({block:'center'});el.select&&el.select()}},150)},
+ focusWall:a=>{if(a.closest('button:not([data-act="focusWall"])'))return;S.focusWall=+a.dataset.i;S.live&&S.live()},
+ geom:a=>{const g=a.dataset.g;confirmBox(`¿Redibujar las paredes con forma <b>${(SHAPES.find(x=>x[0]===g)||[,g])[1]}</b> a partir de ${nf(S.P.room.approxW)} × ${nf(S.P.room.approxL)} mm? Se sustituirán las longitudes actuales; revisa después huecos y muebles.`,()=>{const P=S.P;P.room.geometry=g;P.room.walls=preset(g,P.room.approxW,P.room.approxL);const n=P.room.walls.length;[P.openings,P.obstacles,P.inst,P.mods].forEach(arr=>arr.forEach(x=>{if(x.wall!=null&&x.wall>=n)x.wall=n-1}));V.dirty=true;commit();render(true)},'Generar')},
  closeLast:()=>{closeLast(S.P);V.dirty=true;commit();render(true);toast('Última pared recalculada para cerrar el contorno')},
  addWall:()=>{S.P.room.walls.push({len:1000,ang:90});S.P.room.geometry='irregular';commit();render(true)},
  delWall:()=>{const n=S.P.room.walls.length-1;confirmBox(`¿Quitar la pared ${LET(n)}? Los elementos que estén en ella pasarán a la pared ${LET(n-1)}.`,()=>{S.P.room.walls.pop();[S.P.openings,S.P.obstacles,S.P.inst,S.P.mods].forEach(arr=>arr.forEach(x=>{if(x.wall===n)x.wall=n-1}));S.P.room.geometry='irregular';commit();render(true)})},
