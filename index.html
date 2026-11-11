@@ -115,6 +115,10 @@ h3{margin:0;font-size:16px;font-weight:700}
 .it i{width:8px;height:8px;border-radius:2px;display:inline-block}
 .add{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
 .add button{flex:none;padding:6px 10px;border-radius:9px;border:1px dashed var(--ln2);color:var(--mu);font-size:12.5px;font-weight:600}
+.doorpick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.doorpick button{background:var(--p2);border:1px solid var(--ln);border-radius:12px;padding:6px 8px 9px;color:#C9CDD3;display:flex;flex-direction:column;gap:2px;text-align:left}
+.doorpick button.on{border-color:var(--ac);background:var(--acbg);color:var(--ac2)}
+.doorpick span{font-size:11.5px;line-height:1.25;color:var(--tx)}
 .shapes{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
 .shape{background:var(--p2);border:1px solid var(--ln);border-radius:14px;padding:8px 9px 10px;text-align:left;display:flex;flex-direction:column;gap:3px}
 .shape.on{border-color:var(--ac);background:var(--acbg)}
@@ -691,12 +695,13 @@ function F_tog(label,path,val,o2={}){return`<label class="tog ${o2.cls||''}"><sp
 function ref(path){const parts=path.split('.');let o=S.P;for(let i=0;i<parts.length-1;i++){const k=parts[i];o=k[0]==='#'?o.find(x=>x.id===k.slice(1)):o[k];if(o==null)return[null]}return[o,parts[parts.length-1]]}
 const wallOpts=()=>geo(S.P).ws.map((w,i)=>[i,`Pared ${LET(i)} · ${nf(w.len)} mm`]);
 
-document.addEventListener('input',e=>{const el=e.target.closest('[data-bind]');if(!el)return;const[o,k]=ref(el.dataset.bind);if(!o)return;const t=el.dataset.t||'txt';let v;
+function applyBind(el){const[o,k]=ref(el.dataset.bind);if(!o)return false;const t=el.dataset.t||'txt';let v;
  if(t==='mm'||t==='num'){const raw=String(el.value).replace(',','.');if(raw===''){if(!el.dataset.opt)return;v=null}else{v=parseFloat(raw);if(isNaN(v))return;if(t==='mm')v=Math.round(v)}}
  else if(t==='bool')v=el.checked;else if(t==='selnum')v=+el.value;else v=el.value;
  if(el.value==='custom')v=95;
- o[k]=v;const cv=el.closest('.fld')?.querySelector('[data-conv]');if(cv&&t==='mm')cv.textContent=conv(v);V.dirty=true;liveRefresh()});
-document.addEventListener('change',e=>{const el=e.target.closest('[data-bind]');if(!el)return;commit();if(el.dataset.rr!==undefined){const sc=$('.sh-b')?.scrollTop;if(S.sheetFn){S.sheetFn();const b=$('.sh-b');if(b)b.scrollTop=sc}const ms=$('#main').scrollTop;render(true);$('#main').scrollTop=ms}});
+ if(o[k]===v)return false;o[k]=v;const cv=el.closest('.fld')?.querySelector('[data-conv]');if(cv&&t==='mm')cv.textContent=conv(v);V.dirty=true;return true}
+document.addEventListener('input',e=>{const el=e.target.closest('[data-bind]');if(!el)return;if(applyBind(el))liveRefresh()});
+document.addEventListener('change',e=>{const el=e.target.closest('[data-bind]');if(!el)return;if(applyBind(el))liveRefresh();commit();if(el.dataset.rr!==undefined){const sc=$('.sh-b')?.scrollTop;if(S.sheetFn){S.sheetFn();const b=$('.sh-b');if(b)b.scrollTop=sc}const ms=$('#main').scrollTop;render(true);$('#main').scrollTop=ms}});
 document.addEventListener('click',e=>{const st=e.target.closest('[data-step]');if(st){const[o,k]=ref(st.dataset.step);if(!o)return;o[k]=Math.round((+o[k]||0)+ +st.dataset.d);const inp=$(`#sheet [data-bind="${st.dataset.step}"]`)||$(`[data-bind="${st.dataset.step}"]`);if(inp){inp.value=o[k];const cv=inp.closest('.fld')?.querySelector('[data-conv]');if(cv)cv.textContent=conv(o[k])}V.dirty=true;liveRefresh();commit();return}
  const go=e.target.closest('[data-go]');if(go){const v=go.dataset.go;if(v==='mas')return moreSheet();nav(v);return}
  const a=e.target.closest('[data-act]');if(a&&ACT[a.dataset.act]){ACT[a.dataset.act](a,e)}});
@@ -848,6 +853,13 @@ function tapItem(tg,mode){const k=tg.dataset.k;if(k==='wall'){S.sel='wall'+tg.da
  if(k==='mod')return modSheet(id);if(k==='op')return itemSheet('op',id);if(k==='ob')return itemSheet('ob',id);if(k==='in')return itemSheet('in',id)}
 
 /* ---------------- Fichas (sheets) ---------------- */
+function doorIcon(hinge,swing,kind){const x0=32,x1=68,y=44,iz=hinge==='izq';let g=`<rect x="0" y="${y-5}" width="${x0}" height="10" fill="#5B636E"/><rect x="${x1}" y="${y-5}" width="${100-x1}" height="10" fill="#5B636E"/>`;
+ if(kind==='corredera'){const sx=iz?x0-44:x1;g+=`<rect x="${iz?x0-30:x1-14}" y="${y+7}" width="44" height="5" rx="2" fill="currentColor"/><path d="M${iz?60:40} ${y+20} L${iz?38:62} ${y+20}" stroke="currentColor" stroke-width="2.5" marker-end="url(#ar)"/>`}
+ else{const h=iz?x0:x1,f=iz?x1:x0,r=x1-x0,dy=swing==='fuera'?-r:r,yy=swing==='fuera'?y-5:y+5;const sw=(iz?1:0)^(swing==='fuera'?1:0);g+=`<line x1="${h}" y1="${yy}" x2="${h}" y2="${yy+dy}" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M${h} ${yy+dy} A${r} ${r} 0 0 ${sw?0:1} ${f} ${yy}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="4 3"/><circle cx="${h}" cy="${yy}" r="3.5" fill="#E9A23B"/>`}
+ return`<svg viewBox="0 -2 100 102" width="100%" height="66"><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 10 5 0 10z" fill="currentColor"/></marker></defs>${g}<text x="50" y="${y+52}" text-anchor="middle" font-size="9" fill="#8C949E" font-family="Inter Tight,sans-serif">COCINA (tú)</text><text x="50" y="7" text-anchor="middle" font-size="9" fill="#6A727C" font-family="Inter Tight,sans-serif">fuera</text></svg>`}
+const doorMano=o=>(o.swing==='fuera'?(o.hinge==='izq'?'dcha':'izq'):o.hinge)==='izq'?'izquierdas':'derechas';
+function doorPicker(o){const opts=o.kind==='corredera'?[['izq',o.swing,'Recoge a la izquierda'],['dcha',o.swing,'Recoge a la derecha']]:[['izq','dentro','Bisagras izq. · abre hacia la cocina'],['dcha','dentro','Bisagras dcha. · abre hacia la cocina'],['izq','fuera','Bisagras izq. · abre hacia fuera'],['dcha','fuera','Bisagras dcha. · abre hacia fuera']];
+ return`<div class="fld full"><label>${o.kind==='corredera'?'Lado de recogida':'Mano y sentido de apertura'} <span class="muted" style="font-weight:500">· vista desde dentro de la cocina, mirando la pared</span></label><div class="doorpick">${opts.map(([h,sw,l])=>`<button class="${o.hinge===h&&(o.kind==='corredera'||o.swing===sw)?'on':''}" data-act="setDoor" data-id="${o.id}" data-h="${h}" data-s="${sw}">${doorIcon(h,sw,o.kind)}<span>${l}</span></button>`).join('')}</div>${o.kind!=='corredera'?`<small>Puerta <b style="color:var(--tx)">a ${doorMano(o)}</b> (según se ve desde el lado hacia el que abre) · el punto ámbar marca las bisagras</small>`:''}</div>`}
 function wallSheet(i){S.sheetRef='closure';const fn=()=>{const P=S.P,w=P.room.walls[i];if(!w)return closeSheet();const custom=![90,270,180].includes(+w.ang);
  const nn=P.room.walls.length,Lw=LET((i-1+nn)%nn),Rw=LET((i+1)%nn);openSheet(`<span class="wl" style="display:inline-grid;width:28px;height:28px;margin-right:8px;font-size:13px">${LET(i)}</span>Pared ${LET(i)}`,`<div class="row" style="gap:12px;margin-bottom:12px"><div class="wthumb" style="width:96px;height:80px">${roomThumb(P,{focusWall:i})}</div><div class="sub" style="font-size:13px">Mirándola desde dentro, tiene a la <b>izquierda la pared ${Lw}</b> y a la <b>derecha la pared ${Rw}</b>. Mídela de esquina a esquina.</div></div><div class="fgrid">${F_mm('Longitud interior','room.walls.'+i+'.len',w.len,{cls:'full',step:true})}
  ${F_sel('Esquina con la pared '+Rw,'room.walls.'+i+'.ang',custom?'custom':w.ang,[[90,'90° · normal'],[270,'270° · hacia dentro'],[180,'180° · recta'],['custom','Otro…']],{rr:true,num:true})}
@@ -857,8 +869,8 @@ function wallSheet(i){S.sheetRef='closure';const fn=()=>{const P=S.P,w=P.room.wa
  `<button class="btn w" data-act="elevOf" data-i="${i}">Ver alzado</button><button class="btn pri w" data-act="closeSheet">Listo</button>`,fn);sheetLive()};fn()}
 function itemSheet(c,id){S.sheetRef=id;const fn=()=>{const P=S.P;const coll=c==='op'?P.openings:c==='ob'?P.obstacles:P.inst;const o=coll.find(x=>x.id===id);if(!o)return closeSheet();
  const k=c==='op'?'openings':c==='ob'?'obstacles':'inst',p=`${k}.#${id}.`;let b='<div class="fgrid">';b+=F_sel('Pared','' +p+'wall',o.wall,wallOpts(),{num:true,cls:'full'});
- if(c==='op'&&o.type==='puerta'){b+=F_sel('Tipo de puerta',p+'kind',o.kind,[['abatible','Abatible'],['corredera','Corredera'],['plegable','Plegable']],{rr:true})+F_sel(o.kind==='corredera'?'Lado de recogida':'Bisagras',p+'hinge',o.hinge,[['izq','Izquierda'],['dcha','Derecha']])+
-  F_mm('Distancia desde extremo izq.',p+'off',o.off,{cls:'full',step:true})+F_mm('Anchura de paso',p+'w',o.w)+F_mm('Altura del hueco',p+'h',o.h)+F_mm('Altura desde el suelo',p+'sill',o.sill)+F_sel('Sentido de apertura',p+'swing',o.swing,[['dentro','Hacia la cocina'],['fuera','Hacia fuera']])}
+ if(c==='op'&&o.type==='puerta'){b+=F_sel('Tipo de puerta',p+'kind',o.kind,[['abatible','Abatible'],['corredera','Corredera'],['plegable','Plegable']],{rr:true,cls:'full'})+doorPicker(o)+
+  F_mm('Distancia desde extremo izq.',p+'off',o.off,{cls:'full',step:true})+F_mm('Anchura de paso',p+'w',o.w)+F_mm('Altura del hueco',p+'h',o.h)+F_mm('Altura desde el suelo',p+'sill',o.sill,{cls:'full'})}
  else if(c==='op'&&o.type==='ventana'){const H=geo(P).ws[o.wall]?.h||P.room.height;b+=F_mm('Distancia desde extremo izq.',p+'off',o.off,{cls:'full',step:true})+F_mm('Anchura',p+'w',o.w)+F_mm('Altura',p+'h',o.h)+F_mm('Suelo → alféizar',p+'sill',o.sill)+`<div class="fld"><label>Distancia al techo</label><input class="mm" disabled value="${nf(H-o.sill-o.h)}"><small>calculada</small></div>`+
   F_sel('Tipo de apertura',p+'apertura',o.apertura,[['abatible','Abatible'],['oscilobatiente','Oscilobatiente'],['corredera','Corredera'],['fija','Fija'],['basculante','Basculante']],{cls:'full'})+F_tog('Persiana con cajón',p+'persiana',o.persiana,{rr:true,cls:'full'})+(o.persiana?F_mm('Altura del cajón',p+'cajon',o.cajon,{cls:'full'}):'')}
  else if(c==='op'){b+=F_mm('Distancia desde extremo izq.',p+'off',o.off,{cls:'full',step:true})+F_mm('Anchura',p+'w',o.w)+F_mm('Altura',p+'h',o.h)}
@@ -915,6 +927,7 @@ const ACT={
  newPlan:()=>{S.np={g:'rectangular',W:+S.P.room.approxW||3600,L:+S.P.room.approxL||2800,H:+S.P.room.height||2600,n:5};newPlanSheet(1)},
  npShape:a=>{S.np.g=a.dataset.g;newPlanSheet(1)},npN:a=>{S.np.n=+a.dataset.n;newPlanSheet(1)},npStep:a=>newPlanSheet(+a.dataset.s),
  npCreate:()=>{const d=S.np,P=S.P;P.room.geometry=d.g;P.room.approxW=d.W;P.room.approxL=d.L;P.room.height=d.H;P.room.walls=npWalls(d);P.openings=[];P.obstacles=[];P.inst=[];P.mods=[];P.shot=null;S.vb={};S.sel=null;S.focusWall=0;S.curWall=0;S.elevWall=0;V.dirty=true;commit();closeSheet();nav('medir');toast('Plano vacío creado · empieza midiendo la pared A');setTimeout(()=>{const el=$('[data-bind="room.walls.0.len"]');if(el){el.scrollIntoView({block:'center'});el.select&&el.select()}},150)},
+ setDoor:a=>{const o=S.P.openings.find(x=>x.id===a.dataset.id);if(!o)return;o.hinge=a.dataset.h;o.swing=a.dataset.s;V.dirty=true;commit();liveRefresh();S.sheetFn&&S.sheetFn();toast(o.kind==='corredera'?`Recoge a la ${o.hinge==='izq'?'izquierda':'derecha'}`:`Puerta a ${doorMano(o)}`)},
  focusWall:a=>{if(a.closest('button:not([data-act="focusWall"])'))return;S.focusWall=+a.dataset.i;S.live&&S.live()},
  geom:a=>{const g=a.dataset.g;confirmBox(`¿Redibujar las paredes con forma <b>${(SHAPES.find(x=>x[0]===g)||[,g])[1]}</b> a partir de ${nf(S.P.room.approxW)} × ${nf(S.P.room.approxL)} mm? Se sustituirán las longitudes actuales; revisa después huecos y muebles.`,()=>{const P=S.P;P.room.geometry=g;P.room.walls=preset(g,P.room.approxW,P.room.approxL);const n=P.room.walls.length;[P.openings,P.obstacles,P.inst,P.mods].forEach(arr=>arr.forEach(x=>{if(x.wall!=null&&x.wall>=n)x.wall=n-1}));V.dirty=true;commit();render(true)},'Generar')},
  closeLast:()=>{closeLast(S.P);V.dirty=true;commit();render(true);toast('Última pared recalculada para cerrar el contorno')},
