@@ -29,6 +29,11 @@ header#top{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bot
 .logo .mark{width:22px;height:22px;border-radius:6px;background:conic-gradient(from 210deg,var(--ac),#B5651D,var(--ac));position:relative}
 .logo .mark:after{content:'';position:absolute;inset:6px 5px 5px 6px;border-left:2px solid #0C0E11;border-bottom:2px solid #0C0E11}
 .logo b{font-weight:800}.logo i{font-style:normal;color:var(--ac);font-weight:800}
+.ver{font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:6px;border:1px solid rgba(233,162,59,.45);color:var(--ac2);cursor:pointer;flex:none}
+.upd{position:relative}.upd.girando svg{animation:sp .8s linear infinite}
+.upd.nueva{background:var(--ac);color:#1A1206;border-color:var(--ac)}.upd.nueva::after{content:"";position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:var(--er);border:2px solid var(--bg)}
+@media (max-width:440px){.pname{visibility:hidden}}
+header#top .ib,header#top .badge{flex:none}.badge{white-space:nowrap}.pill{white-space:nowrap}
 .pname{flex:1;min-width:0;font-size:12.5px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .ib{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--p2);border:1px solid var(--ln)}
 .badge{height:38px;padding:0 12px;border-radius:12px;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:13px;background:var(--p2);border:1px solid var(--ln)}
@@ -235,7 +240,9 @@ textarea.code{font-family:var(--mono);font-size:11.5px;min-height:160px}
 <div id="app">
  <header id="top">
   <button class="logo" data-act="home" aria-label="Inicio"><span class="mark"></span><b>COCINAS</b><i>PRO</i></button>
+  <span class="ver" id="ver" data-act="about"></span>
   <div class="pname" id="pname"></div>
+  <button class="ib upd" id="upd" data-act="update" aria-label="Actualizar la app" title="Actualizar"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
   <button class="ib" data-act="undo" aria-label="Deshacer"><svg class="i" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
   <button class="badge" id="badge" data-act="checks"></button>
  </header>
@@ -251,6 +258,7 @@ textarea.code{font-family:var(--mono);font-size:11.5px;min-height:160px}
    Unidades internas: milímetros. Coordenadas de planta: x→, y↑.
    Las paredes se recorren en sentido horario; el interior queda a la derecha.
    ========================================================= */
+const VERSION='v1.4';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const uid=()=>Math.random().toString(36).slice(2,9);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -688,7 +696,7 @@ function commit(){const j=JSON.stringify(S.P);if(j===S.last)return;if(S.last){S.
 function setProject(p){S.P=p;S.undo=[];S.last=JSON.stringify(p);S.sel=null;S.vb={};saveStore();V.dirty=true}
 function liveRefresh(){S.live&&S.live();updBadge();sheetLive()}
 function sheetLive(){const el=$('#shChecks');if(!el||!S.sheetRef)return;const l=validate(S.P).filter(c=>c.ref===S.sheetRef);el.innerHTML=l.length?l.map(c=>`<div class="chk"><span class="d ${c.sev==='ok'?'okd':c.sev}"></span><span>${esc(c.msg)}</span></div>`).join(''):`<div class="chk"><span class="d okd"></span><span class="muted">Sin incidencias para este elemento.</span></div>`}
-function updBadge(){const l=validate(S.P);const er=l.filter(c=>c.sev==='err').length,wa=l.filter(c=>c.sev==='warn').length;const b=$('#badge');b.innerHTML=`<span class="d" style="background:${er?'var(--er)':wa?'var(--wa)':'var(--ok)'}"></span>${er?er+' err':''}${er&&wa?' · ':''}${wa?wa+' aviso'+(wa>1?'s':''):''}${!er&&!wa?'OK':''}`;
+function updBadge(){const l=validate(S.P);const er=l.filter(c=>c.sev==='err').length,wa=l.filter(c=>c.sev==='warn').length;const b=$('#badge');b.innerHTML=`<span class="d" style="background:${er?'var(--er)':wa?'var(--wa)':'var(--ok)'}"></span>${er+wa?er+wa:'OK'}`;b.title=`${er} errores · ${wa} avisos`;b.setAttribute('aria-label',b.title);
  const nb=$('#tabs [data-go="muebles"] .n');if(nb){nb.textContent=er;nb.style.display=er?'grid':'none'}$('#pname').textContent=S.P.name}
 function renderTabs(){$('#tabs').innerHTML=TABS.map(([k,l,i])=>`<button data-go="${k}" class="${S.view===k||(k==='mas'&&['acabados','igualacion','expediente'].includes(S.view))?'on':''}">${ic(i)}${l}${k==='muebles'?'<span class="n" style="display:none"></span>':''}</button>`).join('')}
 
@@ -727,7 +735,7 @@ function vInicio(){const P=S.P,G=geo(P),ch=validate(P),er=ch.filter(c=>c.sev==='
  const st=[['Medición',G.err<=2],['Plano',G.err<=2&&P.room.walls.length>=3],['Instalaciones',P.inst.length>0],['Distribución',P.mods.length>0],['Comprobaciones',P.mods.length>0&&!er],['Acabados',!!P.finish.collection||!!P.finish.front.name],['Expediente',!!P.shot]];
  const F=P.finish;
  $('#main').innerHTML=`<div class="wrap">
- <div class="hero"><div class="row sp"><span class="pill">Proyecto · ${new Date(P.created).toLocaleDateString('es-ES')}</span><div class="row" style="gap:6px"><button class="chip sm" data-act="newPlan">+ Plano nuevo</button><button class="chip sm" data-act="projects">${ic('carp','i" style="width:15px;height:15px;vertical-align:-3px')} Proyectos</button></div></div>
+ <div class="hero"><div class="row sp" style="flex-wrap:wrap;gap:8px"><span class="pill">Proyecto · ${new Date(P.created).toLocaleDateString('es-ES')}</span><div class="row" style="gap:6px"><button class="chip sm" data-act="newPlan">+ Plano nuevo</button><button class="chip sm" data-act="projects">${ic('carp','i" style="width:15px;height:15px;vertical-align:-3px')} Proyectos</button></div></div>
   <h1 style="margin-top:12px">${esc(P.name)}</h1><div class="sub">${esc(P.room.name)} · ${esc(P.room.type)}${P.address?' · '+esc(P.address):''}</div>
   <div class="kpis"><div class="kpi"><b>${nf(G.area/1e6,2)}</b><span>m² planta</span></div><div class="kpi"><b>${nf(G.per/1000,2)}</b><span>m perímetro</span></div><div class="kpi"><b>${nf(ml/1000,2)}</b><span>m encimera</span></div><div class="kpi"><b style="color:${er?'var(--er)':wa?'var(--wa)':'var(--ok)'}">${er||wa||'✓'}</b><span>${er?'errores':wa?'avisos':'sin incidencias'}</span></div></div>
   <div class="pipe">${st.map(([l,ok],k)=>`<span class="${ok?'ok':(k&&st[k-1][1]?'wip':'')}">${l}</span>`).join('')}</div></div>
@@ -941,7 +949,7 @@ function moreSheet(){openSheet('Más herramientas',`<div class="grid2">
  <button class="tile" style="min-height:118px" data-act="newPlan"><span class="ic">${ic('plano')}</span><span class="t" style="font-size:15px">Plano nuevo</span><span class="s">Vaciar y empezar de cero</span></button>
  <button class="tile" style="min-height:118px" data-act="ergo"><span class="ic">${ic('ergo')}</span><span class="t" style="font-size:15px">Ergonomía</span><span class="s">Alturas y pasillos</span></button>
  <button class="tile" style="min-height:118px" data-act="projects"><span class="ic">${ic('carp')}</span><span class="t" style="font-size:15px">Proyectos</span><span class="s">Abrir, nuevo, duplicar</span></button>
- <button class="tile" style="min-height:118px" data-act="io"><span class="ic">${ic('doc')}</span><span class="t" style="font-size:15px">Importar / exportar</span><span class="s">Archivo de proyecto</span></button></div>`)}
+ <button class="tile" style="min-height:118px" data-act="io"><span class="ic">${ic('doc')}</span><span class="t" style="font-size:15px">Importar / exportar</span><span class="s">Archivo de proyecto</span></button></div><div class="sp14"></div><button class="btn w" data-act="about">Cocinas Pro <b class="mono" style="color:var(--ac2)">${VERSION}</b> · ↻ Actualizar</button>`)}
 function ergoSheet(){const fn=()=>{const e=S.P.ergo;const sug=Math.round((e.stature*.63-120)/10)*10;openSheet('Ergonomía y criterios',`<div class="fgrid">
  ${F_mm('Altura de encimera','ergo.counter',e.counter,{hint:'ref. ~900'})}${F_mm('Zócalo','ergo.plinth',e.plinth)}${F_mm('Grosor encimera','ergo.ctThick',e.ctThick)}${F_mm('Encimera → altos','ergo.gap',e.gap,{hint:'ref. 500–600'})}${F_mm('Altura muebles altos','ergo.wallH',e.wallH)}${F_mm('Altura columnas','ergo.colH',e.colH)}${F_mm('Pasillo mínimo','ergo.aisle',e.aisle,{hint:'ref. 1.000–1.200'})}
  ${F_sel('Tipo de placa','hob',S.P.hob,[['induccion','Inducción / vitro'],['gas','Gas']])}</div>
@@ -978,6 +986,7 @@ const ACT={
   const G=geo(P),b=bounds(G);P.room.approxW=Math.round(b.w);P.room.approxL=Math.round(b.h);P.openings=[];P.obstacles=[];P.inst=[];P.mods=[];P.shot=null;S.vb={};S.sel=null;S.focusWall=0;S.curWall=0;S.elevWall=0;V.dirty=true;commit();closeSheet();nav('medir');
   toast(`Plano creado con ${r.walls.length} paredes`+(r.added>0?` · ${r.added} añadida${r.added>1?'s':''} para cerrar`:'')+(r.rev?' · sentido de recorrido ajustado':''))};
   if(S.P.openings.length||S.P.mods.length||S.P.inst.length)confirmBox('Se sustituirán las paredes y se borrarán puertas, ventanas, instalaciones y muebles del plano actual. Puedes deshacerlo con ↶.',go,'Crear plano');else go()},
+ update:()=>actualizarApp(false),about:()=>aboutSheet(),
  setDoor:a=>{const o=S.P.openings.find(x=>x.id===a.dataset.id);if(!o)return;o.hinge=a.dataset.h;o.swing=a.dataset.s;V.dirty=true;commit();liveRefresh();S.sheetFn&&S.sheetFn();toast(o.kind==='corredera'?`Recoge a la ${o.hinge==='izq'?'izquierda':'derecha'}`:`Puerta a ${doorMano(o)}`)},
  focusWall:a=>{if(a.closest('button:not([data-act="focusWall"])'))return;S.focusWall=+a.dataset.i;S.live&&S.live()},
  geom:a=>{const g=a.dataset.g;confirmBox(`¿Redibujar las paredes con forma <b>${(SHAPES.find(x=>x[0]===g)||[,g])[1]}</b> a partir de ${nf(S.P.room.approxW)} × ${nf(S.P.room.approxL)} mm? Se sustituirán las longitudes actuales; revisa después huecos y muebles.`,()=>{const P=S.P;P.room.geometry=g;P.room.walls=preset(g,P.room.approxW,P.room.approxL);const n=P.room.walls.length;[P.openings,P.obstacles,P.inst,P.mods].forEach(arr=>arr.forEach(x=>{if(x.wall!=null&&x.wall>=n)x.wall=n-1}));V.dirty=true;commit();render(true)},'Generar')},
@@ -1293,10 +1302,40 @@ function vExpediente(){const P=S.P,G=geo(P),F=P.finish;const pl=planSVG(P,{mode:
   <tr><td><span class="sw" style="background:${F.floor.color}"></span>Suelo</td><td>${nearestName(F.floor.color)} · ${F.floor.texture}</td><td class="m">${F.floor.color}</td></tr></tbody></table>${P.refImg?`<p style="margin-top:14px;font-size:12px;color:#777">Fotografía de referencia</p><img src="${P.refImg}" style="width:50%;border-radius:4px">`:''}</div>
  <div class="doc"><h4>Memoria</h4><h3>Memoria del proyecto</h3>${memoria(P)}</div></div>`}
 
+
+/* ---------------- Versión y actualización (sin tocar los proyectos) ---------------- */
+const enClaude=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+const FICHEROS_APP=['./','index.html','sw.js','manifest.webmanifest','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'];
+async function versionRemota(){const txt=await(await fetch('index.html?nc='+Date.now(),{cache:'no-store'})).text();const m=txt.match(/const VERSION='([^']+)'/);return m?m[1]:''}
+async function actualizarApp(forzar){const btn=$('#upd');
+ if(enClaude){toast('Dentro de Claude la app ya está siempre en la última versión ('+VERSION+')');return}
+ if(!navigator.onLine){toast('Sin conexión. Conéctate y vuelve a pulsar ↻');return}
+ btn.classList.add('girando');
+ try{const nueva=await versionRemota();
+  if(!forzar&&nueva&&nueva===VERSION){btn.classList.remove('girando');confirmBox(`Ya tienes la última versión (<b>${VERSION}</b>). ¿Recargar la app de todos modos?`,()=>actualizarApp(true),'Recargar');return}
+  saveStore();
+  await Promise.all(FICHEROS_APP.map(f=>fetch(f,{cache:'reload'}).catch(()=>null)));
+  if('caches' in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}
+  if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}
+  try{sessionStorage.setItem('actualizadoDesde',VERSION)}catch(e){}
+  location.replace(location.pathname+'?v='+Date.now()+location.hash)}
+ catch(e){btn.classList.remove('girando');toast('No se pudo actualizar: '+e.message)}}
+async function comprobarNueva(){if(enClaude||!navigator.onLine||location.protocol!=='https:')return;try{const v=await versionRemota();if(v&&v!==VERSION){$('#upd').classList.add('nueva');toast('Hay una versión nueva ('+v+'): toca ↻')}}catch(e){}}
+function aboutSheet(){openSheet('Cocinas Pro',`<div class="row" style="gap:12px"><span class="logo"><span class="mark" style="width:40px;height:40px;border-radius:11px"></span></span><div><b style="font-size:17px">Versión ${VERSION}</b><div class="sub">${enClaude?'Abierta dentro de Claude':'App instalada · GitHub Pages'}</div></div></div>
+ <div class="sp14"></div><div class="card" style="background:var(--p2);font-size:13.5px;color:var(--mu)">El botón <b style="color:var(--tx)">↻</b> descarga la última versión desde GitHub y recarga la app. <b style="color:var(--tx)">Tus proyectos no se borran</b>: se guardan aparte en este dispositivo. Cuando hay una versión nueva, el botón se pone en ámbar con un punto rojo.</div>
+ <div class="sp14"></div><h2 style="margin-top:0">Novedades</h2><div class="card" style="font-size:13px">
+ <p style="margin:0 0 6px"><b class="mono">v1.4</b> · Versión visible y botón de actualizar.</p>
+ <p style="margin:0 0 6px"><b class="mono">v1.3</b> · Dibujar paredes pared a pared con flechas.</p>
+ <p style="margin:0 0 6px"><b class="mono">v1.2</b> · Puertas: mano y apertura con dibujo; desplegables fiables en iPhone.</p>
+ <p style="margin:0 0 6px"><b class="mono">v1.1</b> · Plano nuevo desde cero y guía de paredes.</p>
+ <p style="margin:0"><b class="mono">v1.0</b> · Primera versión.</p></div>`,`<button class="btn pri w" data-act="update">↻ Buscar actualización</button>`)}
+
 /* ---------------- Arranque ---------------- */
 function boot(){const st=loadStore();let p=null;if(st&&st.projects&&st.projects.length)p=st.projects.find(x=>x.id===st.current)||st.projects[0];if(!p)p=defaultProject();
  S.P=p;S.last=JSON.stringify(p);saveStore();const v=location.hash.slice(1);S.view=VIEWS.includes(v)?v:'inicio';render()}
 boot();
+$('#ver').textContent=VERSION;setTimeout(comprobarNueva,1500);document.addEventListener('visibilitychange',()=>{if(!document.hidden)comprobarNueva()});
+try{const desde=sessionStorage.getItem('actualizadoDesde');if(desde){sessionStorage.removeItem('actualizadoDesde');history.replaceState(null,'',location.pathname+location.hash);setTimeout(()=>toast(desde===VERSION?'App recargada · '+VERSION:'Actualizada de '+desde+' a '+VERSION),400)}}catch(e){}
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 </script>
 </body>
